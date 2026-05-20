@@ -1,5 +1,6 @@
 package com.magazines.catalog.di
 
+import android.util.Log
 import com.magazines.catalog.BuildConfig
 import com.magazines.catalog.data.remote.api.AuthApi
 import com.magazines.catalog.data.remote.interceptor.AuthInterceptor
@@ -45,6 +46,7 @@ object NetworkModule {
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
+        Log.d("Network", "BASE_URL = ${BuildConfig.BASE_URL}")
     }
 
     @Provides
