@@ -7,7 +7,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import com.magazines.catalog.presentation.navigation.AppNavGraph
+import androidx.navigation.compose.rememberNavController
+import com.magazines.catalog.presentation.navigation.NavGraph
 import com.magazines.catalog.presentation.theme.MagazinesCatalogTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -19,7 +20,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             MagazinesCatalogTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    AppNavGraph()
+                    val navController = rememberNavController()
+                    NavGraph(navController = navController)
                 }
             }
         }
