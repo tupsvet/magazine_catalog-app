@@ -17,16 +17,3 @@ data class MagazineDto(
     val createdAt: String,
 )
 
-data class CategoryDto(
-    val id: String,
-    val name: String,
-    val description: String?,
-)
-
-data class PagedResponseDto<T>(
-    val items: List<T>,
-    val page: Int,
-    val pageSize: Int,
-    val totalItems: Int,
-    val totalPages: Int,
-)

@@ -3,6 +3,8 @@ package com.magazines.catalog.di
 import android.util.Log
 import com.magazines.catalog.BuildConfig
 import com.magazines.catalog.data.remote.api.AuthApi
+import com.magazines.catalog.data.remote.api.CategoryApi
+import com.magazines.catalog.data.remote.api.MagazineApi
 import com.magazines.catalog.data.remote.interceptor.AuthInterceptor
 import dagger.Module
 import dagger.Provides
@@ -52,4 +54,12 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideAuthApi(retrofit: Retrofit): AuthApi = retrofit.create(AuthApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideMagazineApi(retrofit: Retrofit): MagazineApi = retrofit.create(MagazineApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideCategoryApi(retrofit: Retrofit): CategoryApi = retrofit.create(CategoryApi::class.java)
 }

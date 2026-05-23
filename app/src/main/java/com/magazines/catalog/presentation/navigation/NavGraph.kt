@@ -106,7 +106,11 @@ private fun MainGraph() {
             modifier = Modifier.padding(paddingValues),
         ) {
             composable(Routes.CATALOG) {
-                CatalogScreen()
+                CatalogScreen(
+                    onMagazineClick = { magazineId ->
+                        mainNavController.navigate(Routes.magazineDetail(magazineId))
+                    },
+                )
             }
 
             composable(Routes.FAVORITES) {

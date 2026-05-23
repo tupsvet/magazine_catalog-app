@@ -1,15 +1,33 @@
 package com.magazines.catalog.data.mapper
 
+import com.magazines.catalog.data.remote.api.CategoryDto
 import com.magazines.catalog.data.remote.dto.IssueDto
 import com.magazines.catalog.data.remote.dto.MagazineDto
+import com.magazines.catalog.data.remote.dto.PagedResponse
 import com.magazines.catalog.data.remote.dto.ReviewDto
 import com.magazines.catalog.data.remote.dto.UserDto
+import com.magazines.catalog.domain.model.Category
+import com.magazines.catalog.domain.model.PagedData
 import com.magazines.catalog.domain.model.Issue
 import com.magazines.catalog.domain.model.Magazine
 import com.magazines.catalog.domain.model.MagazineStatus
 import com.magazines.catalog.domain.model.Review
 import com.magazines.catalog.domain.model.User
 import com.magazines.catalog.domain.model.UserRole
+
+fun CategoryDto.toDomain(): Category = Category(
+    id = id,
+    name = name,
+    description = description,
+)
+
+fun <T, R> PagedResponse<T>.toDomain(mapper: (T) -> R): PagedData<R> = PagedData(
+    items = items.map(mapper),
+    page = page,
+    pageSize = pageSize,
+    totalItems = totalItems,
+    totalPages = totalPages,
+)
 
 fun UserDto.toDomain(): User = User(
     id = id,

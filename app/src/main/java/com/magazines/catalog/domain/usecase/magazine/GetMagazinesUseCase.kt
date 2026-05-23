@@ -12,6 +12,8 @@ class GetMagazinesUseCase @Inject constructor(
     suspend operator fun invoke(
         page: Int,
         pageSize: Int,
-        categoryId: String? = null,
-    ): ApiResult<PagedData<Magazine>> = magazineRepository.getMagazines(page, pageSize, categoryId)
+        search: String? = null,
+        categoryId: Int? = null,
+    ): ApiResult<PagedData<Magazine>> =
+        magazineRepository.getMagazines(page, pageSize, search, categoryId)
 }

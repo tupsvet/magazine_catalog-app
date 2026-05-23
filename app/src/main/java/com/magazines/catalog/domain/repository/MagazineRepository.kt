@@ -10,7 +10,8 @@ interface MagazineRepository {
     suspend fun getMagazines(
         page: Int,
         pageSize: Int,
-        categoryId: String? = null,
+        search: String? = null,
+        categoryId: Int? = null,
     ): ApiResult<PagedData<Magazine>>
 
     suspend fun getMagazineById(id: String): ApiResult<Magazine>
