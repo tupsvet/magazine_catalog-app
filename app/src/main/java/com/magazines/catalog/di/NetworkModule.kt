@@ -4,7 +4,10 @@ import android.util.Log
 import com.magazines.catalog.BuildConfig
 import com.magazines.catalog.data.remote.api.AuthApi
 import com.magazines.catalog.data.remote.api.CategoryApi
+import com.magazines.catalog.data.remote.api.FavoriteApi
+import com.magazines.catalog.data.remote.api.IssueApi
 import com.magazines.catalog.data.remote.api.MagazineApi
+import com.magazines.catalog.data.remote.api.ReviewApi
 import com.magazines.catalog.data.remote.interceptor.AuthInterceptor
 import dagger.Module
 import dagger.Provides
@@ -62,4 +65,16 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideCategoryApi(retrofit: Retrofit): CategoryApi = retrofit.create(CategoryApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideIssueApi(retrofit: Retrofit): IssueApi = retrofit.create(IssueApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideReviewApi(retrofit: Retrofit): ReviewApi = retrofit.create(ReviewApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideFavoriteApi(retrofit: Retrofit): FavoriteApi = retrofit.create(FavoriteApi::class.java)
 }

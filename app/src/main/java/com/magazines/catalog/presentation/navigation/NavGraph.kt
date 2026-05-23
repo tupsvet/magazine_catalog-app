@@ -21,7 +21,7 @@ import com.magazines.catalog.presentation.auth.LoginScreen
 import com.magazines.catalog.presentation.auth.RegisterScreen
 import com.magazines.catalog.presentation.catalog.CatalogScreen
 import com.magazines.catalog.presentation.favorites.FavoritesScreen
-import com.magazines.catalog.presentation.magazine.MagazineDetailScreen
+import com.magazines.catalog.presentation.detail.MagazineDetailScreen
 import com.magazines.catalog.presentation.mymagazines.MyMagazinesScreen
 import com.magazines.catalog.presentation.profile.ProfileScreen
 import com.magazines.catalog.presentation.splash.SplashScreen
@@ -132,7 +132,11 @@ private fun MainGraph() {
                 ),
             ) { backStackEntry ->
                 val magazineId = backStackEntry.arguments?.getString("magazineId").orEmpty()
-                MagazineDetailScreen(magazineId = magazineId)
+                MagazineDetailScreen(
+                    onNavigateBack = { mainNavController.popBackStack() },
+                    onUploadIssue = { id -> mainNavController.navigate(Routes.uploadIssue(id)) },
+                    onIssueClick = { pdfUrl -> mainNavController.navigate(Routes.pdfViewer(pdfUrl)) },
+                )
             }
 
             composable(
