@@ -137,7 +137,11 @@ private fun MainGraph() {
                 popEnterTransition = { tabFadeIn },
                 popExitTransition = { tabFadeOut },
             ) {
-                FavoritesScreen()
+                FavoritesScreen(
+                    onMagazineClick = { magazineId ->
+                        mainNavController.navigate(Routes.magazineDetail(magazineId))
+                    },
+                )
             }
 
             composable(
