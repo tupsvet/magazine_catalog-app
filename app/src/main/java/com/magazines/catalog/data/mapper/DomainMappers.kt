@@ -1,5 +1,6 @@
 package com.magazines.catalog.data.mapper
 
+import com.magazines.catalog.data.remote.CoverUrlResolver
 import com.magazines.catalog.data.remote.api.CategoryDto
 import com.magazines.catalog.data.remote.dto.IssueDto
 import com.magazines.catalog.data.remote.dto.MagazineDto
@@ -45,7 +46,7 @@ fun MagazineDto.toDomain(): Magazine = Magazine(
     categoryId = categoryId,
     categoryName = categoryName,
     description = description,
-    coverUrl = coverUrl,
+    coverUrl = CoverUrlResolver.resolve(coverUrl),
     uploadedBy = uploadedBy,
     status = MagazineStatus.valueOf(status.uppercase()),
     averageRating = averageRating,
@@ -59,7 +60,7 @@ fun IssueDto.toDomain(): Issue = Issue(
     magazineId = magazineId,
     issueNumber = issueNumber,
     publicationDate = publicationDate,
-    pdfUrl = pdfUrl,
+    pdfUrl = CoverUrlResolver.resolve(pdfUrl, logTag = "Issues") ?: pdfUrl,
     pagesCount = pagesCount,
     createdAt = createdAt,
 )

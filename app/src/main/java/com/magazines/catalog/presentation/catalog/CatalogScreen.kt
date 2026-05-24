@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.magazines.catalog.domain.model.Category
+import com.magazines.catalog.presentation.components.ErrorMessage
 import com.magazines.catalog.presentation.components.MagazineCard
 import kotlinx.coroutines.flow.distinctUntilChanged
 
@@ -56,14 +57,19 @@ fun CatalogScreen(
     var searchText by rememberSaveable { mutableStateOf("") }
     val gridState = rememberLazyGridState()
 
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let { message ->
-            snackbarHostState.showSnackbar(message)
+    LaunchedEffect(uiState.error, uiState.magazines.size) {
+        val error = uiState.error ?: return@LaunchedEffect
+        if (uiState.magazines.isNotEmpty()) {
+            snackbarHostState.showSnackbar(error)
             viewModel.clearError()
         }
     }
 
-    LaunchedEffect(gridState, uiState.magazines.size, uiState.totalPages) {
+    LaunchedEffect(uiState.selectedCategoryId, uiState.searchQuery) {
+        gridState.scrollToItem(0)
+    }
+
+    LaunchedEffect(gridState, uiState.magazines.size, uiState.totalPages, uiState.isLoading) {
         snapshotFlow {
             val layoutInfo = gridState.layoutInfo
             val lastVisibleIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
@@ -72,7 +78,13 @@ fun CatalogScreen(
         }
             .distinctUntilChanged()
             .collect { (lastVisibleIndex, totalItems) ->
-                if (totalItems > 0 && lastVisibleIndex >= totalItems - 1) {
+                val state = viewModel.uiState.value
+                if (
+                    !state.isLoading &&
+                    !state.isLoadingMore &&
+                    totalItems > 0 &&
+                    lastVisibleIndex >= totalItems - 1
+                ) {
                     viewModel.loadNextPage()
                 }
             }
@@ -117,6 +129,13 @@ fun CatalogScreen(
                 when {
                     uiState.isLoading && uiState.magazines.isEmpty() -> {
                         CatalogLoadingGrid()
+                    }
+                    !uiState.isLoading && uiState.magazines.isEmpty() && uiState.error != null -> {
+                        ErrorMessage(
+                            message = uiState.error ?: "Ошибка загрузки",
+                            onRetry = { viewModel.loadMagazines(refresh = true) },
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                     !uiState.isLoading && uiState.magazines.isEmpty() && uiState.error == null -> {
                         CatalogEmptyState(modifier = Modifier.weight(1f))

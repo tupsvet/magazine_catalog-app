@@ -19,9 +19,9 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -48,15 +48,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import com.magazines.catalog.domain.model.Issue
 import com.magazines.catalog.domain.model.Magazine
 import com.magazines.catalog.domain.model.Review
+import com.magazines.catalog.presentation.components.ErrorMessage
+import com.magazines.catalog.presentation.components.MagazineCoverImage
 import com.magazines.catalog.presentation.components.RatingBar
 import com.magazines.catalog.presentation.components.ReviewCard
 
@@ -70,12 +70,44 @@ fun MagazineDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var reviewToDelete by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let { message ->
-            snackbarHostState.showSnackbar(message)
+    LaunchedEffect(uiState.error, uiState.magazine) {
+        val error = uiState.error ?: return@LaunchedEffect
+        if (uiState.magazine != null) {
+            snackbarHostState.showSnackbar(error)
             viewModel.clearError()
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Удалить отзыв?") },
+            text = { Text("Это действие нельзя отменить") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        reviewToDelete?.let { viewModel.deleteReview(it) }
+                        showDeleteDialog = false
+                        reviewToDelete = null
+                    },
+                ) {
+                    Text("Удалить")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        reviewToDelete = null
+                    },
+                ) {
+                    Text("Отмена")
+                }
+            },
+        )
     }
 
     Scaffold(
@@ -112,9 +144,9 @@ fun MagazineDetailScreen(
                         .padding(paddingValues),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        text = uiState.error ?: "Журнал не найден",
-                        style = MaterialTheme.typography.bodyLarge,
+                    ErrorMessage(
+                        message = uiState.error ?: "Ошибка загрузки",
+                        onRetry = { viewModel.retry() },
                     )
                 }
             }
@@ -130,11 +162,15 @@ fun MagazineDetailScreen(
                     isAdmin = uiState.isAdmin,
                     currentUserReview = uiState.currentUserReview,
                     isSubmittingReview = uiState.isSubmittingReview,
+                    isTogglingFavorite = uiState.isTogglingFavorite,
                     onToggleFavorite = viewModel::toggleFavorite,
                     onUploadIssue = { onUploadIssue(uiState.magazine!!.id) },
                     onIssueClick = onIssueClick,
                     onCreateReview = viewModel::createReview,
-                    onDeleteReview = viewModel::deleteReview,
+                    onRequestDeleteReview = { reviewId ->
+                        reviewToDelete = reviewId
+                        showDeleteDialog = true
+                    },
                     modifier = Modifier.padding(paddingValues),
                 )
             }
@@ -154,11 +190,12 @@ private fun MagazineDetailContent(
     isAdmin: Boolean,
     currentUserReview: Review?,
     isSubmittingReview: Boolean,
+    isTogglingFavorite: Boolean,
     onToggleFavorite: () -> Unit,
     onUploadIssue: () -> Unit,
     onIssueClick: (String) -> Unit,
     onCreateReview: (Int, String?) -> Unit,
-    onDeleteReview: (String) -> Unit,
+    onRequestDeleteReview: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -200,6 +237,7 @@ private fun MagazineDetailContent(
                     if (isLoggedIn) {
                         OutlinedButton(
                             onClick = onToggleFavorite,
+                            enabled = !isTogglingFavorite,
                             modifier = Modifier.weight(1f),
                         ) {
                             Icon(
@@ -208,7 +246,16 @@ private fun MagazineDetailContent(
                                 } else {
                                     Icons.Outlined.FavoriteBorder
                                 },
-                                contentDescription = null,
+                                contentDescription = if (isFavorite) {
+                                    "Убрать из избранного"
+                                } else {
+                                    "Добавить в избранное"
+                                },
+                                tint = if (isFavorite) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(if (isFavorite) "В избранном" else "В избранное")
@@ -235,27 +282,11 @@ private fun MagazineDetailContent(
             }
         }
 
-        if (issues.isNotEmpty()) {
-            item {
-                Text(
-                    text = "Выпуски",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 8.dp),
-                )
-            }
-            item {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    items(issues, key = { it.id }) { issue ->
-                        IssueCard(
-                            issue = issue,
-                            onClick = { onIssueClick(issue.pdfUrl) },
-                        )
-                    }
-                }
-            }
+        item {
+            IssuesSection(
+                issues = issues,
+                onReadIssue = onIssueClick,
+            )
         }
 
         item {
@@ -282,7 +313,7 @@ private fun MagazineDetailContent(
             ReviewCard(
                 review = review,
                 canDelete = canDelete,
-                onDelete = { onDeleteReview(review.id) },
+                onDelete = { onRequestDeleteReview(review.id) },
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
             )
         }
@@ -311,26 +342,11 @@ private fun CoverHero(
             .fillMaxWidth()
             .aspectRatio(3f / 4f),
     ) {
-        if (coverUrl.isNullOrBlank()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.MenuBook,
-                    contentDescription = title,
-                    modifier = Modifier.fillMaxSize(0.3f),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        } else {
-            AsyncImage(
-                model = coverUrl,
-                contentDescription = title,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-            )
-        }
+        MagazineCoverImage(
+            coverUrl = coverUrl,
+            contentDescription = title,
+            modifier = Modifier.fillMaxSize(),
+        )
     }
 }
 
@@ -363,19 +379,57 @@ private fun ExpandableDescription(
 }
 
 @Composable
+private fun IssuesSection(
+    issues: List<Issue>,
+    onReadIssue: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.padding(top = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = "Выпуски",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+
+        if (issues.isEmpty()) {
+            Text(
+                text = "Выпусков пока нет",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        } else {
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(issues, key = { it.id }) { issue ->
+                    IssueCard(
+                        issue = issue,
+                        onReadClick = { onReadIssue(issue.pdfUrl) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun IssueCard(
     issue: Issue,
-    onClick: () -> Unit,
+    onReadClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = modifier.width(140.dp),
-        onClick = onClick,
+        modifier = modifier.width(160.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
                 text = "№ ${issue.issueNumber}",
@@ -392,6 +446,12 @@ private fun IssueCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            TextButton(
+                onClick = onReadClick,
+                modifier = Modifier.align(Alignment.End),
+            ) {
+                Text("Читать")
             }
         }
     }

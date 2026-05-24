@@ -5,6 +5,7 @@ import com.magazines.catalog.data.remote.ApiResult
 import com.magazines.catalog.data.remote.api.ReviewApi
 import com.magazines.catalog.data.remote.api.ReviewRequest
 import com.magazines.catalog.data.remote.safeApiCall
+import com.magazines.catalog.data.remote.safeApiCallNoContent
 import com.magazines.catalog.domain.model.CreateReviewRequest
 import com.magazines.catalog.domain.model.PagedData
 import com.magazines.catalog.domain.model.Review
@@ -74,7 +75,7 @@ class ReviewRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteReview(reviewId: String): ApiResult<Unit> {
-        return when (val result = safeApiCall { reviewApi.deleteReview(reviewId) }) {
+        return when (val result = safeApiCallNoContent { reviewApi.deleteReview(reviewId) }) {
             is ApiResult.Success -> ApiResult.Success(Unit)
             is ApiResult.Error -> ApiResult.Error(result.code, result.message)
             ApiResult.NetworkError -> ApiResult.NetworkError

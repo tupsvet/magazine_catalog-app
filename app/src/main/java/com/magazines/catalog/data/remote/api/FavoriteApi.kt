@@ -18,7 +18,7 @@ interface FavoriteApi {
     ): Response<PagedResponse<MagazineDto>>
 
     @POST("api/users/me/favorites/{id}")
-    suspend fun addFavorite(@Path("id") id: String): Response<Unit>
+    suspend fun addFavorite(@Path("id") id: String): Response<MagazineDto>
 
     @DELETE("api/users/me/favorites/{id}")
     suspend fun removeFavorite(@Path("id") id: String): Response<Unit>

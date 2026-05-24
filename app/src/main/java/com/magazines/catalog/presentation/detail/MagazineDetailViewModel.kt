@@ -1,5 +1,6 @@
 package com.magazines.catalog.presentation.detail
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -40,6 +41,7 @@ data class DetailUiState(
     val isAdmin: Boolean = false,
     val currentUserId: String? = null,
     val isSubmittingReview: Boolean = false,
+    val isTogglingFavorite: Boolean = false,
 )
 
 @HiltViewModel
@@ -62,10 +64,9 @@ class MagazineDetailViewModel @Inject constructor(
     val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
 
     init {
-        init()
+        loadDetail()
     }
-
-    fun init() {
+    private fun loadDetail() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
@@ -73,13 +74,11 @@ class MagazineDetailViewModel @Inject constructor(
                 val magazineDeferred = async { getMagazineByIdUseCase(magazineId) }
                 val issuesDeferred = async { getIssuesUseCase(magazineId) }
                 val reviewsDeferred = async { getReviewsUseCase(magazineId, page = 1, pageSize = 100) }
-                val favoriteDeferred = async { isFavoriteUseCase(magazineId) }
                 val userDeferred = async { getMeUseCase() }
 
                 val magazineResult = magazineDeferred.await()
                 val issuesResult = issuesDeferred.await()
                 val reviewsResult = reviewsDeferred.await()
-                val favoriteResult = favoriteDeferred.await()
                 val userResult = userDeferred.await()
 
                 var error: String? = null
@@ -98,20 +97,24 @@ class MagazineDetailViewModel @Inject constructor(
                 }
 
                 when (issuesResult) {
-                    is ApiResult.Success -> issues = issuesResult.data
-                    is ApiResult.Error -> if (error == null) error = issuesResult.message
-                    ApiResult.NetworkError -> if (error == null) error = NETWORK_ERROR
+                    is ApiResult.Success -> {
+                        issues = issuesResult.data
+                        Log.d(ISSUES_TAG, "Loaded ${issues.size} issues")
+                    }
+                    is ApiResult.Error -> {
+                        Log.e(ISSUES_TAG, "Failed to load issues: ${issuesResult.message}")
+                        if (error == null) error = issuesResult.message
+                    }
+                    ApiResult.NetworkError -> {
+                        Log.e(ISSUES_TAG, "Failed to load issues: network error")
+                        if (error == null) error = NETWORK_ERROR
+                    }
                 }
 
                 when (reviewsResult) {
                     is ApiResult.Success -> reviews = reviewsResult.data.items
                     is ApiResult.Error -> if (error == null) error = reviewsResult.message
                     ApiResult.NetworkError -> if (error == null) error = NETWORK_ERROR
-                }
-
-                when (favoriteResult) {
-                    is ApiResult.Success -> isFavorite = favoriteResult.data
-                    else -> Unit
                 }
 
                 when (userResult) {
@@ -121,6 +124,21 @@ class MagazineDetailViewModel @Inject constructor(
                         isOwner = magazine?.uploadedBy == userResult.data.id
                     }
                     else -> Unit
+                }
+
+                if (currentUserId != null) {
+                    when (val favoriteResult = isFavoriteUseCase(magazineId)) {
+                        is ApiResult.Success -> {
+                            isFavorite = favoriteResult.data
+                            Log.d(TAG, "init isFavorite=$isFavorite magazineId=$magazineId")
+                        }
+                        is ApiResult.Error -> {
+                            Log.e(TAG, "init isFavorite failed: ${favoriteResult.message}")
+                        }
+                        ApiResult.NetworkError -> {
+                            Log.e(TAG, "init isFavorite: network error")
+                        }
+                    }
                 }
 
                 val currentUserReview = currentUserId?.let { userId ->
@@ -146,11 +164,24 @@ class MagazineDetailViewModel @Inject constructor(
     }
 
     fun toggleFavorite() {
-        if (_uiState.value.currentUserId == null) return
+        val state = _uiState.value
+        if (state.currentUserId == null || state.isTogglingFavorite) return
+
+        Log.d(TAG, "toggleFavorite: isFavorite=${state.isFavorite}")
 
         viewModelScope.launch {
-            val isFavorite = _uiState.value.isFavorite
-            val result = if (isFavorite) {
+            val previousFavorite = state.isFavorite
+            val optimisticFavorite = !previousFavorite
+
+            _uiState.update {
+                it.copy(
+                    isFavorite = optimisticFavorite,
+                    isTogglingFavorite = true,
+                    error = null,
+                )
+            }
+
+            val result = if (previousFavorite) {
                 removeFavoriteUseCase(magazineId)
             } else {
                 addFavoriteUseCase(magazineId)
@@ -158,13 +189,36 @@ class MagazineDetailViewModel @Inject constructor(
 
             when (result) {
                 is ApiResult.Success -> {
-                    _uiState.update { it.copy(isFavorite = !isFavorite) }
+                    Log.d(
+                        TAG,
+                        "toggleFavorite success: isFavorite=$optimisticFavorite magazineId=$magazineId",
+                    )
+                    _uiState.update {
+                        it.copy(
+                            isFavorite = optimisticFavorite,
+                            isTogglingFavorite = false,
+                        )
+                    }
                 }
                 is ApiResult.Error -> {
-                    _uiState.update { it.copy(error = result.message) }
+                    Log.e(TAG, "toggleFavorite error: ${result.message}")
+                    _uiState.update {
+                        it.copy(
+                            isFavorite = previousFavorite,
+                            isTogglingFavorite = false,
+                            error = result.message,
+                        )
+                    }
                 }
                 ApiResult.NetworkError -> {
-                    _uiState.update { it.copy(error = NETWORK_ERROR) }
+                    Log.e(TAG, "toggleFavorite: network error")
+                    _uiState.update {
+                        it.copy(
+                            isFavorite = previousFavorite,
+                            isTogglingFavorite = false,
+                            error = NETWORK_ERROR,
+                        )
+                    }
                 }
             }
         }
@@ -237,6 +291,10 @@ class MagazineDetailViewModel @Inject constructor(
         _uiState.update { it.copy(error = null) }
     }
 
+    fun retry() {
+        loadDetail()
+    }
+
     private fun refreshMagazine() {
         viewModelScope.launch {
             when (val result = getMagazineByIdUseCase(magazineId)) {
@@ -249,6 +307,8 @@ class MagazineDetailViewModel @Inject constructor(
     }
 
     companion object {
+        private const val TAG = "Favorites"
+        private const val ISSUES_TAG = "Issues"
         private const val NETWORK_ERROR = "Нет подключения к сети"
     }
 }

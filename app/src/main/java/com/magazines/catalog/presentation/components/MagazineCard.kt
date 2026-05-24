@@ -7,21 +7,16 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import com.magazines.catalog.domain.model.Magazine
 import com.magazines.catalog.domain.model.MagazineStatus
 
@@ -47,26 +42,11 @@ fun MagazineCard(
                     .fillMaxWidth()
                     .aspectRatio(3f / 4f),
             ) {
-                if (magazine.coverUrl.isNullOrBlank()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.MenuBook,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize(0.4f),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                } else {
-                    AsyncImage(
-                        model = magazine.coverUrl,
-                        contentDescription = magazine.title,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                    )
-                }
+                MagazineCoverImage(
+                    coverUrl = magazine.coverUrl,
+                    contentDescription = magazine.title,
+                    modifier = Modifier.fillMaxSize(),
+                )
 
                 if (showStatusBadge) {
                     StatusBadge(

@@ -46,12 +46,12 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        Log.d("Network", "BASE_URL = ${BuildConfig.BASE_URL}")
         return Retrofit.Builder()
             .baseUrl(BuildConfig.BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-        Log.d("Network", "BASE_URL = ${BuildConfig.BASE_URL}")
     }
 
     @Provides

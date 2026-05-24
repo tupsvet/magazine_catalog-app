@@ -1,5 +1,10 @@
 package com.magazines.catalog.presentation.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -20,11 +25,17 @@ import androidx.navigation.navArgument
 import com.magazines.catalog.presentation.auth.LoginScreen
 import com.magazines.catalog.presentation.auth.RegisterScreen
 import com.magazines.catalog.presentation.catalog.CatalogScreen
-import com.magazines.catalog.presentation.favorites.FavoritesScreen
 import com.magazines.catalog.presentation.detail.MagazineDetailScreen
+import com.magazines.catalog.presentation.favorites.FavoritesScreen
 import com.magazines.catalog.presentation.mymagazines.MyMagazinesScreen
 import com.magazines.catalog.presentation.profile.ProfileScreen
 import com.magazines.catalog.presentation.splash.SplashScreen
+
+private const val TAB_ANIMATION_MS = 200
+private const val DETAIL_ANIMATION_MS = 300
+
+private val tabFadeIn get() = fadeIn(animationSpec = tween(TAB_ANIMATION_MS))
+private val tabFadeOut get() = fadeOut(animationSpec = tween(TAB_ANIMATION_MS))
 
 @Composable
 fun NavGraph(
@@ -105,7 +116,13 @@ private fun MainGraph() {
             startDestination = Routes.CATALOG,
             modifier = Modifier.padding(paddingValues),
         ) {
-            composable(Routes.CATALOG) {
+            composable(
+                route = Routes.CATALOG,
+                enterTransition = { tabFadeIn },
+                exitTransition = { tabFadeOut },
+                popEnterTransition = { tabFadeIn },
+                popExitTransition = { tabFadeOut },
+            ) {
                 CatalogScreen(
                     onMagazineClick = { magazineId ->
                         mainNavController.navigate(Routes.magazineDetail(magazineId))
@@ -113,15 +130,33 @@ private fun MainGraph() {
                 )
             }
 
-            composable(Routes.FAVORITES) {
+            composable(
+                route = Routes.FAVORITES,
+                enterTransition = { tabFadeIn },
+                exitTransition = { tabFadeOut },
+                popEnterTransition = { tabFadeIn },
+                popExitTransition = { tabFadeOut },
+            ) {
                 FavoritesScreen()
             }
 
-            composable(Routes.MY_MAGAZINES) {
+            composable(
+                route = Routes.MY_MAGAZINES,
+                enterTransition = { tabFadeIn },
+                exitTransition = { tabFadeOut },
+                popEnterTransition = { tabFadeIn },
+                popExitTransition = { tabFadeOut },
+            ) {
                 MyMagazinesScreen()
             }
 
-            composable(Routes.PROFILE) {
+            composable(
+                route = Routes.PROFILE,
+                enterTransition = { tabFadeIn },
+                exitTransition = { tabFadeOut },
+                popEnterTransition = { tabFadeIn },
+                popExitTransition = { tabFadeOut },
+            ) {
                 ProfileScreen()
             }
 
@@ -130,8 +165,31 @@ private fun MainGraph() {
                 arguments = listOf(
                     navArgument("magazineId") { type = NavType.StringType },
                 ),
-            ) { backStackEntry ->
-                val magazineId = backStackEntry.arguments?.getString("magazineId").orEmpty()
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { fullWidth -> fullWidth },
+                        animationSpec = tween(DETAIL_ANIMATION_MS),
+                    )
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { fullWidth -> fullWidth },
+                        animationSpec = tween(DETAIL_ANIMATION_MS),
+                    )
+                },
+                popEnterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { fullWidth -> -fullWidth },
+                        animationSpec = tween(DETAIL_ANIMATION_MS),
+                    )
+                },
+                popExitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { fullWidth -> fullWidth },
+                        animationSpec = tween(DETAIL_ANIMATION_MS),
+                    )
+                },
+            ) {
                 MagazineDetailScreen(
                     onNavigateBack = { mainNavController.popBackStack() },
                     onUploadIssue = { id -> mainNavController.navigate(Routes.uploadIssue(id)) },

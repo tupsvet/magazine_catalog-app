@@ -1,5 +1,6 @@
 package com.magazines.catalog.data.repository
 
+import android.util.Log
 import com.magazines.catalog.data.mapper.toDomain
 import com.magazines.catalog.data.remote.ApiResult
 import com.magazines.catalog.data.remote.api.IssueApi
@@ -17,10 +18,24 @@ class IssueRepositoryImpl @Inject constructor(
 ) : IssueRepository {
 
     override suspend fun getIssues(magazineId: String): ApiResult<List<Issue>> {
+        Log.d(TAG, "getIssues: magazineId=$magazineId")
         return when (val result = safeApiCall { issueApi.getIssues(magazineId) }) {
-            is ApiResult.Success -> ApiResult.Success(result.data.map { it.toDomain() })
-            is ApiResult.Error -> ApiResult.Error(result.code, result.message)
-            ApiResult.NetworkError -> ApiResult.NetworkError
+            is ApiResult.Success -> {
+                val issues = result.data.map { it.toDomain() }
+                Log.d(TAG, "Loaded ${issues.size} issues for magazineId=$magazineId")
+                issues.forEach { issue ->
+                    Log.d(TAG, "issue #${issue.issueNumber} pdfUrl=${issue.pdfUrl}")
+                }
+                ApiResult.Success(issues)
+            }
+            is ApiResult.Error -> {
+                Log.e(TAG, "getIssues error ${result.code}: ${result.message}")
+                ApiResult.Error(result.code, result.message)
+            }
+            ApiResult.NetworkError -> {
+                Log.e(TAG, "getIssues: network error")
+                ApiResult.NetworkError
+            }
         }
     }
 
@@ -30,5 +45,9 @@ class IssueRepositoryImpl @Inject constructor(
 
     override suspend fun deleteIssue(magazineId: String, issueId: String): ApiResult<Unit> {
         return ApiResult.Error(-1, "Not implemented")
+    }
+
+    companion object {
+        private const val TAG = "Issues"
     }
 }

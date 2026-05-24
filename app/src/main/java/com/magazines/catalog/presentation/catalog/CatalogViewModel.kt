@@ -9,14 +9,12 @@ import com.magazines.catalog.domain.usecase.auth.GetMeUseCase
 import com.magazines.catalog.domain.usecase.category.GetCategoriesUseCase
 import com.magazines.catalog.domain.usecase.magazine.GetMagazinesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -35,7 +33,6 @@ data class CatalogUiState(
     val error: String? = null,
 )
 
-@OptIn(FlowPreview::class)
 @HiltViewModel
 class CatalogViewModel @Inject constructor(
     private val getMagazinesUseCase: GetMagazinesUseCase,
@@ -46,28 +43,51 @@ class CatalogViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CatalogUiState())
     val uiState: StateFlow<CatalogUiState> = _uiState.asStateFlow()
 
-    private val searchQueryFlow = MutableStateFlow("")
+    private var searchJob: Job? = null
+    private var fetchJob: Job? = null
 
     init {
         loadCategories()
         loadCurrentUser()
-        observeSearch()
         loadMagazines(refresh = true)
     }
 
     fun loadMagazines(refresh: Boolean = false) {
-        viewModelScope.launch {
+        fetchJob?.cancel()
+        fetchJob = viewModelScope.launch {
             fetchMagazines(page = 1, append = false, isRefresh = refresh)
         }
     }
 
     fun search(query: String) {
-        searchQueryFlow.value = query
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            delay(SEARCH_DEBOUNCE_MS)
+            _uiState.update {
+                it.copy(
+                    searchQuery = query,
+                    currentPage = 0,
+                    totalPages = 0,
+                    magazines = emptyList(),
+                )
+            }
+            fetchJob?.cancel()
+            fetchMagazines(page = 1, append = false, isRefresh = false)
+        }
     }
 
     fun filterByCategory(categoryId: Int?) {
-        _uiState.update { it.copy(selectedCategoryId = categoryId, currentPage = 0, totalPages = 0) }
-        viewModelScope.launch {
+        searchJob?.cancel()
+        fetchJob?.cancel()
+        _uiState.update {
+            it.copy(
+                selectedCategoryId = categoryId,
+                currentPage = 0,
+                totalPages = 0,
+                magazines = emptyList(),
+            )
+        }
+        fetchJob = viewModelScope.launch {
             fetchMagazines(page = 1, append = false, isRefresh = false)
         }
     }
@@ -86,19 +106,9 @@ class CatalogViewModel @Inject constructor(
         _uiState.update { it.copy(error = null) }
     }
 
-    private fun observeSearch() {
-        viewModelScope.launch {
-            searchQueryFlow
-                .drop(1)
-                .debounce(SEARCH_DEBOUNCE_MS)
-                .distinctUntilChanged()
-                .collectLatest { query ->
-                    _uiState.update {
-                        it.copy(searchQuery = query, currentPage = 0, totalPages = 0)
-                    }
-                    fetchMagazines(page = 1, append = false, isRefresh = false)
-                }
-        }
+    fun retry() {
+        clearError()
+        loadMagazines(refresh = true)
     }
 
     private fun loadCategories() {
@@ -129,60 +139,64 @@ class CatalogViewModel @Inject constructor(
     }
 
     private suspend fun fetchMagazines(page: Int, append: Boolean, isRefresh: Boolean) {
-        val state = _uiState.value
-        val showInitialLoading = !append && state.magazines.isEmpty() && !isRefresh
-        val showRefreshing = isRefresh && state.magazines.isNotEmpty()
+        try {
+            val state = _uiState.value
+            val showInitialLoading = !append && state.magazines.isEmpty() && !isRefresh
+            val showRefreshing = isRefresh && state.magazines.isNotEmpty()
 
-        _uiState.update {
-            it.copy(
-                isLoading = showInitialLoading,
-                isLoadingMore = append,
-                isRefreshing = showRefreshing,
-                error = if (append) it.error else null,
+            _uiState.update {
+                it.copy(
+                    isLoading = showInitialLoading,
+                    isLoadingMore = append,
+                    isRefreshing = showRefreshing,
+                    error = if (append) it.error else null,
+                )
+            }
+
+            val result = getMagazinesUseCase(
+                page = page,
+                pageSize = PAGE_SIZE,
+                search = state.searchQuery.takeIf { it.isNotBlank() },
+                categoryId = state.selectedCategoryId,
             )
-        }
 
-        val result = getMagazinesUseCase(
-            page = page,
-            pageSize = PAGE_SIZE,
-            search = state.searchQuery.takeIf { it.isNotBlank() },
-            categoryId = state.selectedCategoryId,
-        )
-
-        when (result) {
-            is ApiResult.Success -> {
-                val data = result.data
-                _uiState.update { current ->
-                    current.copy(
-                        isLoading = false,
-                        isLoadingMore = false,
-                        isRefreshing = false,
-                        magazines = if (append) current.magazines + data.items else data.items,
-                        currentPage = data.page,
-                        totalPages = data.totalPages,
-                    )
+            when (result) {
+                is ApiResult.Success -> {
+                    val data = result.data
+                    _uiState.update { current ->
+                        current.copy(
+                            isLoading = false,
+                            isLoadingMore = false,
+                            isRefreshing = false,
+                            magazines = if (append) current.magazines + data.items else data.items,
+                            currentPage = data.page,
+                            totalPages = data.totalPages,
+                        )
+                    }
+                }
+                is ApiResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            isLoadingMore = false,
+                            isRefreshing = false,
+                            error = result.message,
+                        )
+                    }
+                }
+                ApiResult.NetworkError -> {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            isLoadingMore = false,
+                            isRefreshing = false,
+                            error = "Нет подключения к сети",
+                        )
+                    }
                 }
             }
-            is ApiResult.Error -> {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        isLoadingMore = false,
-                        isRefreshing = false,
-                        error = result.message,
-                    )
-                }
-            }
-            ApiResult.NetworkError -> {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        isLoadingMore = false,
-                        isRefreshing = false,
-                        error = "Нет подключения к сети",
-                    )
-                }
-            }
+        } catch (e: CancellationException) {
+            throw e
         }
     }
 
