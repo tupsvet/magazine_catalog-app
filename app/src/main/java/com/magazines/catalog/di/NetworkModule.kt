@@ -2,6 +2,7 @@ package com.magazines.catalog.di
 
 import android.util.Log
 import com.magazines.catalog.BuildConfig
+import com.magazines.catalog.data.remote.api.AdminApi
 import com.magazines.catalog.data.remote.api.AuthApi
 import com.magazines.catalog.data.remote.api.CategoryApi
 import com.magazines.catalog.data.remote.api.FavoriteApi
@@ -77,4 +78,8 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideFavoriteApi(retrofit: Retrofit): FavoriteApi = retrofit.create(FavoriteApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAdminApi(retrofit: Retrofit): AdminApi = retrofit.create(AdminApi::class.java)
 }

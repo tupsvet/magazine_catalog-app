@@ -8,5 +8,6 @@ import javax.inject.Inject
 class RejectMagazineUseCase @Inject constructor(
     private val adminRepository: AdminRepository,
 ) {
-    suspend operator fun invoke(id: String): ApiResult<Magazine> = adminRepository.rejectMagazine(id)
+    suspend operator fun invoke(id: String, reason: String?): ApiResult<Magazine> =
+        adminRepository.rejectMagazine(id, reason)
 }

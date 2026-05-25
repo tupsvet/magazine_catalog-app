@@ -25,6 +25,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.magazines.catalog.presentation.admin.AdminPanelScreen
 import com.magazines.catalog.presentation.auth.LoginScreen
 import com.magazines.catalog.presentation.auth.RegisterScreen
 import com.magazines.catalog.presentation.catalog.CatalogScreen
@@ -97,13 +98,22 @@ fun NavGraph(
         }
 
         composable(Routes.MAIN_GRAPH) {
-            MainGraph()
+            MainGraph(
+                onLogout = {
+                    navController.navigate(Routes.AUTH_GRAPH) {
+                        popUpTo(Routes.MAIN_GRAPH) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+            )
         }
     }
 }
 
 @Composable
-private fun MainGraph() {
+private fun MainGraph(
+    onLogout: () -> Unit,
+) {
     val mainNavController = rememberNavController()
     val navBackStackEntry by mainNavController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -176,7 +186,10 @@ private fun MainGraph() {
                 popEnterTransition = { tabFadeIn },
                 popExitTransition = { tabFadeOut },
             ) {
-                ProfileScreen()
+                ProfileScreen(
+                    onNavigateToAdmin = { mainNavController.navigate(Routes.ADMIN) },
+                    onLoggedOut = onLogout,
+                )
             }
 
             composable(
@@ -252,7 +265,9 @@ private fun MainGraph() {
             }
 
             composable(Routes.ADMIN) {
-                PlaceholderScreen(title = "Админ-панель")
+                AdminPanelScreen(
+                    onNavigateBack = { mainNavController.popBackStack() },
+                )
             }
         }
     }
