@@ -32,29 +32,35 @@ class FavoriteRepositoryImpl @Inject constructor(
     }
 
     override suspend fun syncFavorites(): ApiResult<Unit> {
-        val allMagazines = mutableListOf<Magazine>()
-        var page = 1
-        var totalPages = 1
-
-        while (page <= totalPages) {
-            when (val result = getFavoritesFromApi(page, FAVORITES_PAGE_SIZE)) {
-                is ApiResult.Success -> {
-                    allMagazines.addAll(result.data.items)
-                    totalPages = result.data.totalPages.coerceAtLeast(1)
-                    page++
-                }
-                is ApiResult.Error -> return ApiResult.Error(result.code, result.message)
-                ApiResult.NetworkError -> return ApiResult.NetworkError
+        return when (val result = safeApiCall { favoriteApi.getFavorites() }) {
+            is ApiResult.Success -> {
+                val magazines = result.data.map { it.toDomain() }
+                cacheFavorites(magazines)
+                Log.d(TAG, "syncFavorites: cached ${magazines.size} items")
+                ApiResult.Success(Unit)
             }
+            is ApiResult.Error -> ApiResult.Error(result.code, result.message)
+            ApiResult.NetworkError -> ApiResult.NetworkError
         }
-
-        cacheFavorites(allMagazines)
-        Log.d(TAG, "syncFavorites: cached ${allMagazines.size} items")
-        return ApiResult.Success(Unit)
     }
 
     override suspend fun getFavorites(page: Int, pageSize: Int): ApiResult<PagedData<Magazine>> {
-        return getFavoritesFromApi(page, pageSize)
+        return when (val result = safeApiCall { favoriteApi.getFavorites() }) {
+            is ApiResult.Success -> {
+                val magazines = result.data.map { it.toDomain() }
+                ApiResult.Success(
+                    PagedData(
+                        items = magazines,
+                        page = 1,
+                        pageSize = magazines.size,
+                        totalItems = magazines.size,
+                        totalPages = 1
+                    )
+                )
+            }
+            is ApiResult.Error -> ApiResult.Error(result.code, result.message)
+            ApiResult.NetworkError -> ApiResult.NetworkError
+        }
     }
 
     override suspend fun addFavorite(magazineId: String): ApiResult<Unit> {
@@ -101,17 +107,6 @@ class FavoriteRepositoryImpl @Inject constructor(
         return ApiResult.Success(isFavorite)
     }
 
-    private suspend fun getFavoritesFromApi(
-        page: Int,
-        pageSize: Int,
-    ): ApiResult<PagedData<Magazine>> {
-        return when (val result = safeApiCall { favoriteApi.getFavorites(page, pageSize) }) {
-            is ApiResult.Success -> ApiResult.Success(result.data.toDomain { it.toDomain() })
-            is ApiResult.Error -> ApiResult.Error(result.code, result.message)
-            ApiResult.NetworkError -> ApiResult.NetworkError
-        }
-    }
-
     private suspend fun cacheFavorites(magazines: List<Magazine>) {
         val cachedAt = System.currentTimeMillis()
         val entities = magazines.map { it.toFavoriteEntity(cachedAt) }
@@ -125,6 +120,5 @@ class FavoriteRepositoryImpl @Inject constructor(
 
     companion object {
         private const val TAG = "Favorites"
-        private const val FAVORITES_PAGE_SIZE = 100
     }
 }

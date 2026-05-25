@@ -1,5 +1,6 @@
 package com.magazines.catalog.presentation.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,14 +8,14 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.magazines.catalog.domain.model.Magazine
@@ -28,19 +29,26 @@ fun MagazineCard(
     modifier: Modifier = Modifier,
 ) {
     val showStatusBadge = currentUserId != null &&
-        magazine.uploadedBy == currentUserId &&
-        (magazine.status == MagazineStatus.PENDING || magazine.status == MagazineStatus.REJECTED)
+            magazine.uploadedBy == currentUserId &&
+            (magazine.status == MagazineStatus.PENDING || magazine.status == MagazineStatus.REJECTED)
 
-    Card(
+    val cardShape = RoundedCornerShape(12.dp)
+
+    Surface(
         modifier = modifier.fillMaxWidth(),
         onClick = onClick,
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = cardShape,
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp,           // аналог elevation
+        shadowElevation = 2.dp,
     ) {
         Column {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(3f / 4f),
+                    .aspectRatio(3f / 4f)
+                    .clip(cardShape)                    // максимально жёсткое обрезание
+                    .background(MaterialTheme.colorScheme.surface)  // страховка
             ) {
                 MagazineCoverImage(
                     coverUrl = magazine.coverUrl,

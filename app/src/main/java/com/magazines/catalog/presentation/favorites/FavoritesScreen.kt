@@ -35,6 +35,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.magazines.catalog.domain.model.Magazine
 import com.magazines.catalog.presentation.components.MagazineCard
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -140,11 +142,18 @@ private fun SwipeableFavoriteCard(
             }
         },
     ) {
-        MagazineCard(
-            magazine = magazine,
-            currentUserId = null,
-            onClick = onMagazineClick,
-        )
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 2.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            MagazineCard(
+                magazine = magazine,
+                currentUserId = null,
+                onClick = onMagazineClick,
+            )
+        }
     }
 }
 
