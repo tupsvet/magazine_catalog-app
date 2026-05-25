@@ -2,9 +2,9 @@ package com.magazines.catalog.domain.model
 
 data class CreateMagazineRequest(
     val title: String,
-    val publisher: String,
-    val yearFounded: Int,
-    val categoryId: String,
+    val publisher: String?,
+    val yearFounded: Int?,
+    val categoryId: Int,
     val description: String?,
 )
 
@@ -22,8 +22,8 @@ data class UpdateReviewRequest(
 data class UploadIssueRequest(
     val magazineId: String,
     val issueNumber: Int,
-    val publicationDate: String,
-    val pagesCount: Int?,
+    val publicationDate: String?,
+    val pagesCount: Int? = null,
 )
 
 data class FileData(

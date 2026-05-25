@@ -12,6 +12,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -28,6 +31,8 @@ import com.magazines.catalog.presentation.catalog.CatalogScreen
 import com.magazines.catalog.presentation.detail.MagazineDetailScreen
 import com.magazines.catalog.presentation.favorites.FavoritesScreen
 import com.magazines.catalog.presentation.mymagazines.MyMagazinesScreen
+import com.magazines.catalog.presentation.mymagazines.UploadIssueScreen
+import com.magazines.catalog.presentation.mymagazines.UploadMagazineScreen
 import com.magazines.catalog.presentation.profile.ProfileScreen
 import com.magazines.catalog.presentation.splash.SplashScreen
 
@@ -103,6 +108,7 @@ private fun MainGraph() {
     val navBackStackEntry by mainNavController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val showBottomBar = shouldShowBottomBar(currentRoute)
+    var refreshMyMagazines by remember { mutableStateOf(false) }
 
     Scaffold(
         bottomBar = {
@@ -151,7 +157,16 @@ private fun MainGraph() {
                 popEnterTransition = { tabFadeIn },
                 popExitTransition = { tabFadeOut },
             ) {
-                MyMagazinesScreen()
+                MyMagazinesScreen(
+                    onNavigateToUpload = {
+                        mainNavController.navigate(Routes.UPLOAD_MAGAZINE)
+                    },
+                    onMagazineClick = { magazineId ->
+                        mainNavController.navigate(Routes.magazineDetail(magazineId))
+                    },
+                    refreshRequested = refreshMyMagazines,
+                    onRefreshHandled = { refreshMyMagazines = false },
+                )
             }
 
             composable(
@@ -215,7 +230,13 @@ private fun MainGraph() {
             }
 
             composable(Routes.UPLOAD_MAGAZINE) {
-                PlaceholderScreen(title = "Загрузка журнала")
+                UploadMagazineScreen(
+                    onNavigateBack = { mainNavController.popBackStack() },
+                    onUploadSuccess = {
+                        refreshMyMagazines = true
+                        mainNavController.popBackStack(Routes.MY_MAGAZINES, inclusive = false)
+                    },
+                )
             }
 
             composable(
@@ -223,9 +244,11 @@ private fun MainGraph() {
                 arguments = listOf(
                     navArgument("magazineId") { type = NavType.StringType },
                 ),
-            ) { backStackEntry ->
-                val magazineId = backStackEntry.arguments?.getString("magazineId").orEmpty()
-                PlaceholderScreen(title = "Загрузка выпуска: $magazineId")
+            ) {
+                UploadIssueScreen(
+                    onNavigateBack = { mainNavController.popBackStack() },
+                    onUploadSuccess = { mainNavController.popBackStack() },
+                )
             }
 
             composable(Routes.ADMIN) {

@@ -15,4 +15,5 @@ data class Magazine(
     val reviewsCount: Int,
     val issuesCount: Int,
     val createdAt: String,
+    val rejectionReason: String? = null,
 )

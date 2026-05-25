@@ -53,6 +53,7 @@ fun MagazineDto.toDomain(): Magazine = Magazine(
     reviewsCount = reviewsCount,
     issuesCount = issuesCount,
     createdAt = createdAt,
+    rejectionReason = rejectionReason,
 )
 
 fun IssueDto.toDomain(): Issue = Issue(

@@ -436,7 +436,7 @@ private fun IssueCard(
                 style = MaterialTheme.typography.titleSmall,
             )
             Text(
-                text = issue.publicationDate,
+                text = issue.publicationDate ?: "Дата не указана",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

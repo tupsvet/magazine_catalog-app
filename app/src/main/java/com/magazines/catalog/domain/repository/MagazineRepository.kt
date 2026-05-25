@@ -16,7 +16,7 @@ interface MagazineRepository {
 
     suspend fun getMagazineById(id: String): ApiResult<Magazine>
     suspend fun searchMagazines(query: String, page: Int, pageSize: Int): ApiResult<PagedData<Magazine>>
-    suspend fun getMyMagazines(page: Int, pageSize: Int): ApiResult<PagedData<Magazine>>
+    suspend fun getMyMagazines(): ApiResult<List<Magazine>>
     suspend fun uploadMagazine(request: CreateMagazineRequest): ApiResult<Magazine>
     suspend fun uploadCover(magazineId: String, cover: FileData): ApiResult<Magazine>
     suspend fun deleteMagazine(id: String): ApiResult<Unit>
