@@ -30,6 +30,7 @@ import com.magazines.catalog.presentation.auth.LoginScreen
 import com.magazines.catalog.presentation.auth.RegisterScreen
 import com.magazines.catalog.presentation.catalog.CatalogScreen
 import com.magazines.catalog.presentation.detail.MagazineDetailScreen
+import com.magazines.catalog.presentation.detail.PdfViewerScreen
 import com.magazines.catalog.presentation.favorites.FavoritesScreen
 import com.magazines.catalog.presentation.mymagazines.MyMagazinesScreen
 import com.magazines.catalog.presentation.mymagazines.UploadIssueScreen
@@ -225,7 +226,9 @@ private fun MainGraph(
                 MagazineDetailScreen(
                     onNavigateBack = { mainNavController.popBackStack() },
                     onUploadIssue = { id -> mainNavController.navigate(Routes.uploadIssue(id)) },
-                    onIssueClick = { pdfUrl -> mainNavController.navigate(Routes.pdfViewer(pdfUrl)) },
+                    onIssueClick = { pdfUrl, title ->
+                        mainNavController.navigate(Routes.pdfViewer(pdfUrl, title))
+                    },
                 )
             }
 
@@ -236,10 +239,16 @@ private fun MainGraph(
                         type = NavType.StringType
                         nullable = true
                     },
+                    navArgument("title") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = "Выпуск"
+                    },
                 ),
-            ) { backStackEntry ->
-                val pdfUrl = backStackEntry.arguments?.getString("pdfUrl").orEmpty()
-                PlaceholderScreen(title = "PDF: $pdfUrl")
+            ) {
+                PdfViewerScreen(
+                    onNavigateBack = { mainNavController.popBackStack() },
+                )
             }
 
             composable(Routes.UPLOAD_MAGAZINE) {

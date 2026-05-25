@@ -65,7 +65,7 @@ import com.magazines.catalog.presentation.components.ReviewCard
 fun MagazineDetailScreen(
     onNavigateBack: () -> Unit,
     onUploadIssue: (String) -> Unit,
-    onIssueClick: (String) -> Unit,
+    onIssueClick: (pdfUrl: String, issueTitle: String) -> Unit,
     viewModel: MagazineDetailViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -193,7 +193,7 @@ private fun MagazineDetailContent(
     isTogglingFavorite: Boolean,
     onToggleFavorite: () -> Unit,
     onUploadIssue: () -> Unit,
-    onIssueClick: (String) -> Unit,
+    onIssueClick: (pdfUrl: String, issueTitle: String) -> Unit,
     onCreateReview: (Int, String?) -> Unit,
     onRequestDeleteReview: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -381,7 +381,7 @@ private fun ExpandableDescription(
 @Composable
 private fun IssuesSection(
     issues: List<Issue>,
-    onReadIssue: (String) -> Unit,
+    onReadIssue: (pdfUrl: String, issueTitle: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -409,7 +409,12 @@ private fun IssuesSection(
                 items(issues, key = { it.id }) { issue ->
                     IssueCard(
                         issue = issue,
-                        onReadClick = { onReadIssue(issue.pdfUrl) },
+                        onReadClick = {
+                            onReadIssue(
+                                issue.pdfUrl,
+                                "Выпуск № ${issue.issueNumber}",
+                            )
+                        },
                     )
                 }
             }

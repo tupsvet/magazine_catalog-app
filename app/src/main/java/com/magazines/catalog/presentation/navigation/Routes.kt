@@ -12,7 +12,7 @@ object Routes {
 
     const val CATALOG = "catalog"
     const val MAGAZINE_DETAIL = "magazine/{magazineId}"
-    const val PDF_VIEWER = "pdf_viewer?url={pdfUrl}"
+    const val PDF_VIEWER = "pdf_viewer?url={pdfUrl}&title={title}"
     const val FAVORITES = "favorites"
     const val MY_MAGAZINES = "my_magazines"
     const val UPLOAD_MAGAZINE = "upload_magazine"
@@ -24,5 +24,6 @@ object Routes {
 
     fun uploadIssue(magazineId: String): String = "upload_issue/$magazineId"
 
-    fun pdfViewer(pdfUrl: String): String = "pdf_viewer?url=${Uri.encode(pdfUrl)}"
+    fun pdfViewer(pdfUrl: String, title: String): String =
+        "pdf_viewer?url=${Uri.encode(pdfUrl)}&title=${Uri.encode(title)}"
 }

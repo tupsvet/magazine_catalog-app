@@ -86,6 +86,9 @@ dependencies {
     // Coil
     implementation(libs.coil.compose)
 
+    // WebView
+    implementation("androidx.webkit:webkit:1.11.0")
+
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 
