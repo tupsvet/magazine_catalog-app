@@ -7,6 +7,7 @@ sealed class ApiResult<out T> {
     data class Success<T>(val data: T) : ApiResult<T>()
     data class Error(val code: Int, val message: String) : ApiResult<Nothing>()
     object NetworkError : ApiResult<Nothing>()
+    object Unauthorized : ApiResult<Nothing>()
 }
 
 suspend fun <T> safeApiCall(call: suspend () -> Response<T>): ApiResult<T> {
@@ -22,6 +23,8 @@ suspend fun <T> safeApiCall(call: suspend () -> Response<T>): ApiResult<T> {
                     message = "Empty response body",
                 )
             }
+        } else if (response.code() == 401) {
+            ApiResult.Unauthorized
         } else {
             ApiResult.Error(
                 code = response.code(),
@@ -41,6 +44,8 @@ suspend fun safeApiCallNoContent(call: suspend () -> Response<Unit>): ApiResult<
         val response = call()
         if (response.isSuccessful) {
             ApiResult.Success(Unit)
+        } else if (response.code() == 401) {
+            ApiResult.Unauthorized
         } else {
             ApiResult.Error(
                 code = response.code(),
@@ -52,4 +57,31 @@ suspend fun safeApiCallNoContent(call: suspend () -> Response<Unit>): ApiResult<
     } catch (e: Exception) {
         ApiResult.Error(code = -1, message = e.message ?: "Unknown error")
     }
+}
+
+fun apiErrorMessage(result: ApiResult.Error): String = result.toDisplayMessage()
+
+fun ApiResult.Error.toDisplayMessage(): String = when (code) {
+    401 -> "Сессия истекла. Войдите снова"
+    else -> message
+}
+
+fun unauthorizedMessage(): String = "Сессия истекла. Войдите снова"
+
+fun <T> ApiResult<T>.handleUnauthorized(): ApiResult<T> = when (this) {
+    ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
+    else -> this
+}
+
+/** Maps [ApiResult.Unauthorized] to [ApiResult.Error] for repository `when` branches. */
+fun <T> ApiResult<T>.mapUnauthorizedToError(): ApiResult<T> = handleUnauthorized()
+
+/** No-op handler for exhaustive `when`; session logout is handled by [UnauthorizedInterceptor]. */
+fun ApiResult<*>.ignoreUnauthorized() {}
+
+fun ApiResult<*>.errorMessageOrNull(): String? = when (this) {
+    is ApiResult.Error -> toDisplayMessage()
+    ApiResult.Unauthorized -> unauthorizedMessage()
+    ApiResult.NetworkError -> "Нет подключения к сети"
+    is ApiResult.Success -> null
 }

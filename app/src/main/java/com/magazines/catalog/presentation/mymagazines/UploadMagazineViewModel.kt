@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.magazines.catalog.data.remote.ApiResult
+import com.magazines.catalog.data.remote.ignoreUnauthorized
 import com.magazines.catalog.data.remote.UriFileReader
 import com.magazines.catalog.domain.model.Category
 import com.magazines.catalog.domain.model.CreateMagazineRequest
@@ -109,6 +110,7 @@ class UploadMagazineViewModel @Inject constructor(
                                 it.copy(isSubmitting = false, error = coverResult.message)
                             }
                         }
+                        ApiResult.Unauthorized -> Unit
                         ApiResult.NetworkError -> {
                             _uiState.update {
                                 it.copy(isSubmitting = false, error = NETWORK_ERROR)
@@ -121,6 +123,7 @@ class UploadMagazineViewModel @Inject constructor(
                         it.copy(isSubmitting = false, error = createResult.message)
                     }
                 }
+                ApiResult.Unauthorized -> Unit
                 ApiResult.NetworkError -> {
                     _uiState.update {
                         it.copy(isSubmitting = false, error = NETWORK_ERROR)
@@ -144,6 +147,7 @@ class UploadMagazineViewModel @Inject constructor(
                         it.copy(isLoadingCategories = false, error = result.message)
                     }
                 }
+                ApiResult.Unauthorized -> Unit
                 ApiResult.NetworkError -> {
                     _uiState.update {
                         it.copy(isLoadingCategories = false, error = NETWORK_ERROR)

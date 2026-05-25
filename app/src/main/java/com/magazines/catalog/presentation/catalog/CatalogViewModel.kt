@@ -3,6 +3,8 @@ package com.magazines.catalog.presentation.catalog
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.magazines.catalog.data.remote.ApiResult
+import com.magazines.catalog.data.remote.ignoreUnauthorized
+import com.magazines.catalog.data.remote.unauthorizedMessage
 import com.magazines.catalog.domain.model.Category
 import com.magazines.catalog.domain.model.Magazine
 import com.magazines.catalog.domain.usecase.auth.GetMeUseCase
@@ -120,6 +122,7 @@ class CatalogViewModel @Inject constructor(
                 is ApiResult.Error -> {
                     _uiState.update { it.copy(error = result.message) }
                 }
+                ApiResult.Unauthorized -> result.ignoreUnauthorized()
                 ApiResult.NetworkError -> {
                     _uiState.update { it.copy(error = "Нет подключения к сети") }
                 }
@@ -181,6 +184,16 @@ class CatalogViewModel @Inject constructor(
                             isLoadingMore = false,
                             isRefreshing = false,
                             error = result.message,
+                        )
+                    }
+                }
+                ApiResult.Unauthorized -> {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            isLoadingMore = false,
+                            isRefreshing = false,
+                            error = unauthorizedMessage(),
                         )
                     }
                 }

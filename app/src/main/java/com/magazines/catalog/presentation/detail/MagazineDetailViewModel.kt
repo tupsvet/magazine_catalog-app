@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.magazines.catalog.data.remote.ApiResult
+import com.magazines.catalog.data.remote.ignoreUnauthorized
 import com.magazines.catalog.domain.model.CreateReviewRequest
 import com.magazines.catalog.domain.model.Issue
 import com.magazines.catalog.domain.model.Magazine
@@ -93,6 +94,7 @@ class MagazineDetailViewModel @Inject constructor(
                 when (magazineResult) {
                     is ApiResult.Success -> magazine = magazineResult.data
                     is ApiResult.Error -> error = magazineResult.message
+                    ApiResult.Unauthorized -> Unit
                     ApiResult.NetworkError -> error = NETWORK_ERROR
                 }
 
@@ -105,6 +107,7 @@ class MagazineDetailViewModel @Inject constructor(
                         Log.e(ISSUES_TAG, "Failed to load issues: ${issuesResult.message}")
                         if (error == null) error = issuesResult.message
                     }
+                    ApiResult.Unauthorized -> Unit
                     ApiResult.NetworkError -> {
                         Log.e(ISSUES_TAG, "Failed to load issues: network error")
                         if (error == null) error = NETWORK_ERROR
@@ -114,6 +117,7 @@ class MagazineDetailViewModel @Inject constructor(
                 when (reviewsResult) {
                     is ApiResult.Success -> reviews = reviewsResult.data.items
                     is ApiResult.Error -> if (error == null) error = reviewsResult.message
+                    ApiResult.Unauthorized -> Unit
                     ApiResult.NetworkError -> if (error == null) error = NETWORK_ERROR
                 }
 
@@ -135,6 +139,7 @@ class MagazineDetailViewModel @Inject constructor(
                         is ApiResult.Error -> {
                             Log.e(TAG, "init isFavorite failed: ${favoriteResult.message}")
                         }
+                        ApiResult.Unauthorized -> Unit
                         ApiResult.NetworkError -> {
                             Log.e(TAG, "init isFavorite: network error")
                         }
@@ -210,6 +215,7 @@ class MagazineDetailViewModel @Inject constructor(
                         )
                     }
                 }
+                ApiResult.Unauthorized -> Unit
                 ApiResult.NetworkError -> {
                     Log.e(TAG, "toggleFavorite: network error")
                     _uiState.update {
@@ -254,6 +260,7 @@ class MagazineDetailViewModel @Inject constructor(
                 is ApiResult.Error -> {
                     _uiState.update { it.copy(isSubmittingReview = false, error = result.message) }
                 }
+                ApiResult.Unauthorized -> Unit
                 ApiResult.NetworkError -> {
                     _uiState.update { it.copy(isSubmittingReview = false, error = NETWORK_ERROR) }
                 }
@@ -280,6 +287,7 @@ class MagazineDetailViewModel @Inject constructor(
                 is ApiResult.Error -> {
                     _uiState.update { it.copy(error = result.message) }
                 }
+                ApiResult.Unauthorized -> Unit
                 ApiResult.NetworkError -> {
                     _uiState.update { it.copy(error = NETWORK_ERROR) }
                 }

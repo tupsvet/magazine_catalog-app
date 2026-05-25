@@ -7,6 +7,7 @@ import com.magazines.catalog.data.remote.api.AuthApi
 import com.magazines.catalog.data.remote.dto.LoginRequest
 import com.magazines.catalog.data.remote.dto.RegisterRequest
 import com.magazines.catalog.data.remote.safeApiCall
+import com.magazines.catalog.data.remote.unauthorizedMessage
 import com.magazines.catalog.domain.model.User
 import com.magazines.catalog.domain.repository.AuthRepository
 import javax.inject.Inject
@@ -25,6 +26,7 @@ class AuthRepositoryImpl @Inject constructor(
                 ApiResult.Success(result.data.user.toDomain())
             }
             is ApiResult.Error -> ApiResult.Error(result.code, result.message)
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> ApiResult.NetworkError
         }
     }
@@ -44,6 +46,7 @@ class AuthRepositoryImpl @Inject constructor(
                 ApiResult.Success(result.data.user.toDomain())
             }
             is ApiResult.Error -> ApiResult.Error(result.code, result.message)
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> ApiResult.NetworkError
         }
     }
@@ -52,6 +55,7 @@ class AuthRepositoryImpl @Inject constructor(
         return when (val result = safeApiCall { authApi.getMe() }) {
             is ApiResult.Success -> ApiResult.Success(result.data.toDomain())
             is ApiResult.Error -> ApiResult.Error(result.code, result.message)
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> ApiResult.NetworkError
         }
     }

@@ -3,6 +3,7 @@ package com.magazines.catalog.presentation.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.magazines.catalog.data.remote.ApiResult
+import com.magazines.catalog.data.remote.ignoreUnauthorized
 import com.magazines.catalog.domain.model.User
 import com.magazines.catalog.domain.usecase.auth.GetMeUseCase
 import com.magazines.catalog.domain.usecase.auth.LogoutUseCase
@@ -44,6 +45,7 @@ class ProfileViewModel @Inject constructor(
                 is ApiResult.Error -> {
                     _uiState.update { it.copy(isLoading = false, error = result.message) }
                 }
+                ApiResult.Unauthorized -> Unit
                 ApiResult.NetworkError -> {
                     _uiState.update { it.copy(isLoading = false, error = NETWORK_ERROR) }
                 }

@@ -4,6 +4,7 @@ import com.magazines.catalog.data.mapper.toDomain
 import com.magazines.catalog.data.remote.ApiResult
 import com.magazines.catalog.data.remote.api.CategoryApi
 import com.magazines.catalog.data.remote.safeApiCall
+import com.magazines.catalog.data.remote.unauthorizedMessage
 import com.magazines.catalog.domain.model.Category
 import com.magazines.catalog.domain.repository.CategoryRepository
 import javax.inject.Inject
@@ -18,6 +19,7 @@ class CategoryRepositoryImpl @Inject constructor(
         return when (val result = safeApiCall { categoryApi.getCategories() }) {
             is ApiResult.Success -> ApiResult.Success(result.data.map { it.toDomain() })
             is ApiResult.Error -> ApiResult.Error(result.code, result.message)
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> ApiResult.NetworkError
         }
     }

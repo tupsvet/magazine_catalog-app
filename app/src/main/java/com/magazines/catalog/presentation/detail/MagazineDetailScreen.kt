@@ -48,6 +48,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -128,14 +130,11 @@ fun MagazineDetailScreen(
     ) { paddingValues ->
         when {
             uiState.isLoading && uiState.magazine == null -> {
-                Box(
+                DetailLoadingContent(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
-                }
+                )
             }
             uiState.magazine == null -> {
                 Box(
@@ -198,6 +197,8 @@ private fun MagazineDetailContent(
     onRequestDeleteReview: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val haptic = LocalHapticFeedback.current
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 24.dp),
@@ -236,7 +237,10 @@ private fun MagazineDetailContent(
                 ) {
                     if (isLoggedIn) {
                         OutlinedButton(
-                            onClick = onToggleFavorite,
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onToggleFavorite()
+                            },
                             enabled = !isTogglingFavorite,
                             modifier = Modifier.weight(1f),
                         ) {

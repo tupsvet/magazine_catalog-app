@@ -11,7 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.filled.CollectionsBookmark
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -33,6 +33,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.magazines.catalog.domain.model.Magazine
+import com.magazines.catalog.presentation.components.EmptyState
+import com.magazines.catalog.presentation.components.ErrorMessage
+import com.magazines.catalog.presentation.components.LoadingIndicator
 import com.magazines.catalog.presentation.components.MagazineCard
 
 private val tabTitles = listOf("Одобренные", "На модерации", "Отклонённые")
@@ -100,25 +103,25 @@ fun MyMagazinesScreen(
             }
 
             when {
-                uiState.isLoading -> {
-                    Box(
+                uiState.isLoading && magazinesForTab.isEmpty() && uiState.approved.isEmpty() &&
+                    uiState.pending.isEmpty() && uiState.rejected.isEmpty() -> {
+                    LoadingIndicator(modifier = Modifier.fillMaxSize())
+                }
+                uiState.error != null && magazinesForTab.isEmpty() &&
+                    uiState.approved.isEmpty() && uiState.pending.isEmpty() && uiState.rejected.isEmpty() -> {
+                    ErrorMessage(
+                        message = uiState.error ?: "Ошибка загрузки",
+                        onRetry = { viewModel.refresh() },
                         modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator()
-                    }
+                    )
                 }
                 magazinesForTab.isEmpty() -> {
-                    Box(
+                    EmptyState(
+                        icon = Icons.Default.CollectionsBookmark,
+                        title = "Нет журналов",
+                        subtitle = "В этой категории пока ничего нет",
                         modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "Нет журналов в этой категории",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    )
                 }
                 else -> {
                     LazyColumn(

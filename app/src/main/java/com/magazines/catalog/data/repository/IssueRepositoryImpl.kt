@@ -5,6 +5,7 @@ import com.magazines.catalog.data.mapper.toDomain
 import com.magazines.catalog.data.remote.ApiResult
 import com.magazines.catalog.data.remote.api.IssueApi
 import com.magazines.catalog.data.remote.safeApiCall
+import com.magazines.catalog.data.remote.unauthorizedMessage
 import com.magazines.catalog.data.remote.toMultipartPart
 import com.magazines.catalog.data.remote.toTextRequestBody
 import com.magazines.catalog.domain.model.FileData
@@ -31,6 +32,7 @@ class IssueRepositoryImpl @Inject constructor(
                 Log.e(TAG, "getIssues error ${result.code}: ${result.message}")
                 ApiResult.Error(result.code, result.message)
             }
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> {
                 Log.e(TAG, "getIssues: network error")
                 ApiResult.NetworkError
@@ -55,6 +57,7 @@ class IssueRepositoryImpl @Inject constructor(
         ) {
             is ApiResult.Success -> ApiResult.Success(result.data.toDomain())
             is ApiResult.Error -> ApiResult.Error(result.code, result.message)
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> ApiResult.NetworkError
         }
     }

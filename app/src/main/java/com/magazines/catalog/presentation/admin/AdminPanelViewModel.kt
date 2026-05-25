@@ -3,6 +3,7 @@ package com.magazines.catalog.presentation.admin
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.magazines.catalog.data.remote.ApiResult
+import com.magazines.catalog.data.remote.ignoreUnauthorized
 import com.magazines.catalog.domain.model.Magazine
 import com.magazines.catalog.domain.usecase.admin.ApproveMagazineUseCase
 import com.magazines.catalog.domain.usecase.admin.GetPendingMagazinesUseCase
@@ -48,6 +49,7 @@ class AdminPanelViewModel @Inject constructor(
                 is ApiResult.Error -> {
                     _uiState.update { it.copy(isLoading = false, error = result.message) }
                 }
+                ApiResult.Unauthorized -> Unit
                 ApiResult.NetworkError -> {
                     _uiState.update { it.copy(isLoading = false, error = NETWORK_ERROR) }
                 }
@@ -61,6 +63,7 @@ class AdminPanelViewModel @Inject constructor(
             when (val result = approveMagazineUseCase(magazineId)) {
                 is ApiResult.Success -> removeFromList(magazineId)
                 is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
+                ApiResult.Unauthorized -> Unit
                 ApiResult.NetworkError -> _uiState.update { it.copy(error = NETWORK_ERROR) }
             }
             markProcessing(magazineId, false)
@@ -73,6 +76,7 @@ class AdminPanelViewModel @Inject constructor(
             when (val result = rejectMagazineUseCase(magazineId, reason)) {
                 is ApiResult.Success -> removeFromList(magazineId)
                 is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
+                ApiResult.Unauthorized -> Unit
                 ApiResult.NetworkError -> _uiState.update { it.copy(error = NETWORK_ERROR) }
             }
             markProcessing(magazineId, false)

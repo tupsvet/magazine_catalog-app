@@ -10,6 +10,7 @@ import com.magazines.catalog.data.remote.ApiResult
 import com.magazines.catalog.data.remote.api.FavoriteApi
 import com.magazines.catalog.data.remote.safeApiCall
 import com.magazines.catalog.data.remote.safeApiCallNoContent
+import com.magazines.catalog.data.remote.unauthorizedMessage
 import com.magazines.catalog.domain.model.Magazine
 import com.magazines.catalog.domain.model.PagedData
 import com.magazines.catalog.domain.repository.FavoriteRepository
@@ -40,6 +41,7 @@ class FavoriteRepositoryImpl @Inject constructor(
                 ApiResult.Success(Unit)
             }
             is ApiResult.Error -> ApiResult.Error(result.code, result.message)
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> ApiResult.NetworkError
         }
     }
@@ -59,6 +61,7 @@ class FavoriteRepositoryImpl @Inject constructor(
                 )
             }
             is ApiResult.Error -> ApiResult.Error(result.code, result.message)
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> ApiResult.NetworkError
         }
     }
@@ -74,6 +77,10 @@ class FavoriteRepositoryImpl @Inject constructor(
             is ApiResult.Error -> {
                 Log.e(TAG, "addFavorite: error ${result.code} ${result.message}")
                 ApiResult.Error(result.code, result.message)
+            }
+            ApiResult.Unauthorized -> {
+                Log.e(TAG, "addFavorite: unauthorized")
+                ApiResult.Error(401, unauthorizedMessage())
             }
             ApiResult.NetworkError -> {
                 Log.e(TAG, "addFavorite: network error")
@@ -94,6 +101,7 @@ class FavoriteRepositoryImpl @Inject constructor(
                 Log.e(TAG, "removeFavorite: error ${result.code} ${result.message}")
                 ApiResult.Error(result.code, result.message)
             }
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> {
                 Log.e(TAG, "removeFavorite: network error")
                 ApiResult.NetworkError

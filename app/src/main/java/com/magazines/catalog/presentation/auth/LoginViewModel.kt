@@ -3,6 +3,7 @@ package com.magazines.catalog.presentation.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.magazines.catalog.data.remote.ApiResult
+import com.magazines.catalog.data.remote.ignoreUnauthorized
 import com.magazines.catalog.domain.usecase.auth.LoginUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,6 +64,7 @@ class LoginViewModel @Inject constructor(
                         it.copy(isLoading = false, error = result.message)
                     }
                 }
+                ApiResult.Unauthorized -> Unit
                 ApiResult.NetworkError -> {
                     _uiState.update {
                         it.copy(isLoading = false, error = "Нет подключения к сети")

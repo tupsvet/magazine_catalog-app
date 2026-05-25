@@ -20,7 +20,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.filled.FactCheck
+import com.magazines.catalog.presentation.components.EmptyState
+import com.magazines.catalog.presentation.components.ErrorMessage
 import androidx.compose.material3.CircularProgressIndicator
+import com.magazines.catalog.presentation.components.LoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -99,15 +103,22 @@ fun AdminPanelScreen(
 
             when {
                 uiState.isLoading && uiState.pendingMagazines.isEmpty() -> {
-                    Box(
+                    LoadingIndicator(modifier = Modifier.fillMaxSize())
+                }
+                uiState.error != null && uiState.pendingMagazines.isEmpty() -> {
+                    ErrorMessage(
+                        message = uiState.error ?: "Ошибка загрузки",
+                        onRetry = { viewModel.load() },
                         modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator()
-                    }
+                    )
                 }
                 uiState.pendingMagazines.isEmpty() -> {
-                    EmptyState()
+                    EmptyState(
+                        icon = Icons.Default.FactCheck,
+                        title = "Журналов на модерации нет",
+                        subtitle = "Все запросы обработаны",
+                        modifier = Modifier.fillMaxSize(),
+                    )
                 }
                 else -> {
                     LazyColumn(
@@ -276,27 +287,6 @@ private fun RejectDialog(
             TextButton(onClick = onDismiss) { Text("Отмена") }
         },
     )
-}
-
-@Composable
-private fun EmptyState() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "Журналов на модерации нет",
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Все запросы обработаны",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
 }
 
 private val ApproveGreen = Color(0xFF2E7D32)

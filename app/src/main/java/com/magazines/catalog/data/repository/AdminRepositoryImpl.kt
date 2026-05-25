@@ -6,6 +6,7 @@ import com.magazines.catalog.data.remote.ApiResult
 import com.magazines.catalog.data.remote.api.AdminApi
 import com.magazines.catalog.data.remote.dto.RejectRequest
 import com.magazines.catalog.data.remote.safeApiCall
+import com.magazines.catalog.data.remote.unauthorizedMessage
 import com.magazines.catalog.domain.model.Magazine
 import com.magazines.catalog.domain.repository.AdminRepository
 import javax.inject.Inject
@@ -27,6 +28,7 @@ class AdminRepositoryImpl @Inject constructor(
                 Log.e(TAG, "getPendingMagazines error ${result.code}: ${result.message}")
                 ApiResult.Error(result.code, result.message)
             }
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> {
                 Log.e(TAG, "getPendingMagazines: network error")
                 ApiResult.NetworkError
@@ -38,6 +40,7 @@ class AdminRepositoryImpl @Inject constructor(
         return when (val result = safeApiCall { adminApi.approveMagazine(id) }) {
             is ApiResult.Success -> ApiResult.Success(result.data.toDomain())
             is ApiResult.Error -> ApiResult.Error(result.code, result.message)
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> ApiResult.NetworkError
         }
     }
@@ -47,6 +50,7 @@ class AdminRepositoryImpl @Inject constructor(
         return when (val result = safeApiCall { adminApi.rejectMagazine(id, body) }) {
             is ApiResult.Success -> ApiResult.Success(result.data.toDomain())
             is ApiResult.Error -> ApiResult.Error(result.code, result.message)
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> ApiResult.NetworkError
         }
     }

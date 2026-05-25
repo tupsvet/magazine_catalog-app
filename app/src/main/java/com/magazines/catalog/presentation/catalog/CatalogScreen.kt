@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,6 +15,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,8 +42,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.magazines.catalog.domain.model.Category
+import com.magazines.catalog.presentation.components.EmptyState
 import com.magazines.catalog.presentation.components.ErrorMessage
+import com.magazines.catalog.presentation.components.LoadingIndicator
 import com.magazines.catalog.presentation.components.MagazineCard
+import com.magazines.catalog.presentation.components.ShimmerMagazineCard
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -128,17 +131,22 @@ fun CatalogScreen(
 
                 when {
                     uiState.isLoading && uiState.magazines.isEmpty() -> {
-                        CatalogLoadingGrid()
+                        CatalogShimmerGrid(modifier = Modifier.weight(1f))
                     }
                     !uiState.isLoading && uiState.magazines.isEmpty() && uiState.error != null -> {
                         ErrorMessage(
                             message = uiState.error ?: "Ошибка загрузки",
-                            onRetry = { viewModel.loadMagazines(refresh = true) },
+                            onRetry = { viewModel.retry() },
                             modifier = Modifier.weight(1f),
                         )
                     }
-                    !uiState.isLoading && uiState.magazines.isEmpty() && uiState.error == null -> {
-                        CatalogEmptyState(modifier = Modifier.weight(1f))
+                    !uiState.isLoading && uiState.magazines.isEmpty() -> {
+                        EmptyState(
+                            icon = Icons.AutoMirrored.Filled.MenuBook,
+                            title = "Журналы не найдены",
+                            subtitle = "Попробуйте изменить поиск или категорию",
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                     else -> {
                         LazyVerticalGrid(
@@ -208,60 +216,17 @@ private fun CategoryChipsRow(
 }
 
 @Composable
-private fun CatalogLoadingGrid() {
+private fun CatalogShimmerGrid(modifier: Modifier = Modifier) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         userScrollEnabled = false,
     ) {
         items(count = 6) {
-            CatalogSkeletonCard()
+            ShimmerMagazineCard()
         }
-    }
-}
-
-@Composable
-private fun CatalogSkeletonCard() {
-    androidx.compose.material3.Card(
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(3f / 4f),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.padding(24.dp),
-                    strokeWidth = 2.dp,
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .padding(12.dp)
-                    .fillMaxWidth(0.7f)
-                    .padding(vertical = 8.dp),
-            ) {
-                Text("")
-            }
-        }
-    }
-}
-
-@Composable
-private fun CatalogEmptyState(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = "Журналы не найдены",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }

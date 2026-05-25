@@ -6,6 +6,7 @@ import com.magazines.catalog.data.remote.api.ReviewApi
 import com.magazines.catalog.data.remote.api.ReviewRequest
 import com.magazines.catalog.data.remote.safeApiCall
 import com.magazines.catalog.data.remote.safeApiCallNoContent
+import com.magazines.catalog.data.remote.unauthorizedMessage
 import com.magazines.catalog.domain.model.CreateReviewRequest
 import com.magazines.catalog.domain.model.PagedData
 import com.magazines.catalog.domain.model.Review
@@ -40,6 +41,7 @@ class ReviewRepositoryImpl @Inject constructor(
                 )
             }
             is ApiResult.Error -> ApiResult.Error(result.code, result.message)
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> ApiResult.NetworkError
         }
     }
@@ -55,6 +57,7 @@ class ReviewRepositoryImpl @Inject constructor(
         ) {
             is ApiResult.Success -> ApiResult.Success(result.data.toDomain())
             is ApiResult.Error -> ApiResult.Error(result.code, result.message)
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> ApiResult.NetworkError
         }
     }
@@ -70,6 +73,7 @@ class ReviewRepositoryImpl @Inject constructor(
         ) {
             is ApiResult.Success -> ApiResult.Success(result.data.toDomain())
             is ApiResult.Error -> ApiResult.Error(result.code, result.message)
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> ApiResult.NetworkError
         }
     }
@@ -78,6 +82,7 @@ class ReviewRepositoryImpl @Inject constructor(
         return when (val result = safeApiCallNoContent { reviewApi.deleteReview(reviewId) }) {
             is ApiResult.Success -> ApiResult.Success(Unit)
             is ApiResult.Error -> ApiResult.Error(result.code, result.message)
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> ApiResult.NetworkError
         }
     }

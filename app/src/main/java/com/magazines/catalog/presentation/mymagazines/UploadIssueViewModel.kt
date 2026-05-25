@@ -7,6 +7,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.magazines.catalog.data.remote.ApiResult
+import com.magazines.catalog.data.remote.ignoreUnauthorized
 import com.magazines.catalog.data.remote.UriFileReader
 import com.magazines.catalog.domain.model.FileData
 import com.magazines.catalog.domain.model.UploadIssueRequest
@@ -102,6 +103,7 @@ class UploadIssueViewModel @Inject constructor(
                         it.copy(isSubmitting = false, error = result.message)
                     }
                 }
+                ApiResult.Unauthorized -> Unit
                 ApiResult.NetworkError -> {
                     _uiState.update {
                         it.copy(isSubmitting = false, error = NETWORK_ERROR)

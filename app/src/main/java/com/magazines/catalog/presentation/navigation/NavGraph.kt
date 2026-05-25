@@ -48,6 +48,8 @@ private val tabFadeOut get() = fadeOut(animationSpec = tween(TAB_ANIMATION_MS))
 fun NavGraph(
     navController: NavHostController,
 ) {
+    ObserveSessionExpired(navController = navController)
+
     NavHost(
         navController = navController,
         startDestination = Routes.AUTH_GRAPH,

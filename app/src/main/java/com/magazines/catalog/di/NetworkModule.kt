@@ -10,6 +10,7 @@ import com.magazines.catalog.data.remote.api.IssueApi
 import com.magazines.catalog.data.remote.api.MagazineApi
 import com.magazines.catalog.data.remote.api.ReviewApi
 import com.magazines.catalog.data.remote.interceptor.AuthInterceptor
+import com.magazines.catalog.data.remote.interceptor.UnauthorizedInterceptor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -27,7 +28,10 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(authInterceptor: AuthInterceptor): OkHttpClient {
+    fun provideOkHttpClient(
+        authInterceptor: AuthInterceptor,
+        unauthorizedInterceptor: UnauthorizedInterceptor,
+    ): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = if (BuildConfig.DEBUG) {
                 HttpLoggingInterceptor.Level.BODY
@@ -38,6 +42,7 @@ object NetworkModule {
 
         return OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
+            .addInterceptor(unauthorizedInterceptor)
             .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)

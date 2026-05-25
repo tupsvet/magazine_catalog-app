@@ -3,6 +3,7 @@ package com.magazines.catalog.presentation.favorites
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.magazines.catalog.data.remote.ApiResult
+import com.magazines.catalog.data.remote.ignoreUnauthorized
 import com.magazines.catalog.domain.model.Magazine
 import com.magazines.catalog.domain.repository.FavoriteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -52,6 +53,7 @@ class FavoritesViewModel @Inject constructor(
                         it.copy(isSyncing = false, error = result.message)
                     }
                 }
+                ApiResult.Unauthorized -> Unit
                 ApiResult.NetworkError -> {
                     _uiState.update {
                         it.copy(isSyncing = false, error = NETWORK_ERROR)
@@ -68,6 +70,7 @@ class FavoritesViewModel @Inject constructor(
                 is ApiResult.Error -> {
                     _uiState.update { it.copy(error = result.message) }
                 }
+                ApiResult.Unauthorized -> Unit
                 ApiResult.NetworkError -> {
                     _uiState.update { it.copy(error = NETWORK_ERROR) }
                 }

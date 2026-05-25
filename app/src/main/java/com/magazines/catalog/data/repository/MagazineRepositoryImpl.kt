@@ -5,6 +5,7 @@ import com.magazines.catalog.data.remote.ApiResult
 import com.magazines.catalog.data.remote.api.MagazineApi
 import com.magazines.catalog.data.remote.dto.CreateMagazineRequestDto
 import com.magazines.catalog.data.remote.safeApiCall
+import com.magazines.catalog.data.remote.unauthorizedMessage
 import com.magazines.catalog.data.remote.toMultipartPart
 import com.magazines.catalog.domain.model.CreateMagazineRequest
 import com.magazines.catalog.domain.model.FileData
@@ -37,6 +38,7 @@ class MagazineRepositoryImpl @Inject constructor(
         ) {
             is ApiResult.Success -> ApiResult.Success(result.data.toDomain { it.toDomain() })
             is ApiResult.Error -> ApiResult.Error(result.code, result.message)
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> ApiResult.NetworkError
         }
     }
@@ -45,6 +47,7 @@ class MagazineRepositoryImpl @Inject constructor(
         return when (val result = safeApiCall { magazineApi.getMagazineById(id) }) {
             is ApiResult.Success -> ApiResult.Success(result.data.toDomain())
             is ApiResult.Error -> ApiResult.Error(result.code, result.message)
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> ApiResult.NetworkError
         }
     }
@@ -59,6 +62,7 @@ class MagazineRepositoryImpl @Inject constructor(
         return when (val result = safeApiCall { magazineApi.getMyMagazines() }) {
             is ApiResult.Success -> ApiResult.Success(result.data.map { it.toDomain() })
             is ApiResult.Error -> ApiResult.Error(result.code, result.message)
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> ApiResult.NetworkError
         }
     }
@@ -74,6 +78,7 @@ class MagazineRepositoryImpl @Inject constructor(
         return when (val result = safeApiCall { magazineApi.createMagazine(body) }) {
             is ApiResult.Success -> ApiResult.Success(result.data.toDomain())
             is ApiResult.Error -> ApiResult.Error(result.code, result.message)
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> ApiResult.NetworkError
         }
     }
@@ -83,6 +88,7 @@ class MagazineRepositoryImpl @Inject constructor(
         return when (val result = safeApiCall { magazineApi.uploadCover(magazineId, part) }) {
             is ApiResult.Success -> ApiResult.Success(result.data.toDomain())
             is ApiResult.Error -> ApiResult.Error(result.code, result.message)
+            ApiResult.Unauthorized -> ApiResult.Error(401, unauthorizedMessage())
             ApiResult.NetworkError -> ApiResult.NetworkError
         }
     }

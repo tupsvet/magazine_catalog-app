@@ -10,15 +10,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -34,9 +36,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.magazines.catalog.domain.model.Magazine
+import com.magazines.catalog.presentation.components.EmptyState
+import com.magazines.catalog.presentation.components.ErrorMessage
+import com.magazines.catalog.presentation.components.LoadingIndicator
 import com.magazines.catalog.presentation.components.MagazineCard
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Surface
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,8 +53,10 @@ fun FavoritesScreen(
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let { message ->
-            snackbarHostState.showSnackbar(message)
-            viewModel.clearError()
+            if (favorites.isNotEmpty()) {
+                snackbarHostState.showSnackbar(message)
+                viewModel.clearError()
+            }
         }
     }
 
@@ -63,17 +68,26 @@ fun FavoritesScreen(
     ) { paddingValues ->
         when {
             uiState.isSyncing && favorites.isEmpty() -> {
-                Box(
+                LoadingIndicator(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
-                }
+                )
+            }
+            !uiState.isSyncing && favorites.isEmpty() && uiState.error != null -> {
+                ErrorMessage(
+                    message = uiState.error ?: "Ошибка загрузки",
+                    onRetry = { viewModel.syncWithServer() },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                )
             }
             favorites.isEmpty() -> {
-                FavoritesEmptyState(
+                EmptyState(
+                    icon = Icons.Default.FavoriteBorder,
+                    title = "Избранное пусто",
+                    subtitle = "Добавьте журналы в избранное из каталога",
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues),
@@ -146,7 +160,7 @@ private fun SwipeableFavoriteCard(
             shape = RoundedCornerShape(12.dp),
             color = MaterialTheme.colorScheme.surface,
             shadowElevation = 2.dp,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         ) {
             MagazineCard(
                 magazine = magazine,
@@ -154,19 +168,5 @@ private fun SwipeableFavoriteCard(
                 onClick = onMagazineClick,
             )
         }
-    }
-}
-
-@Composable
-private fun FavoritesEmptyState(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = "Добавьте журналы в избранное",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
