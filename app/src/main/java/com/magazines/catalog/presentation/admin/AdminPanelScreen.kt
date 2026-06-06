@@ -1,5 +1,7 @@
 package com.magazines.catalog.presentation.admin
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,30 +16,31 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material.icons.filled.FactCheck
-import com.magazines.catalog.presentation.components.EmptyState
-import com.magazines.catalog.presentation.components.ErrorMessage
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import com.magazines.catalog.presentation.components.LoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,13 +51,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.magazines.catalog.domain.model.Magazine
+import com.magazines.catalog.presentation.components.ErrorMessage
+import com.magazines.catalog.presentation.components.LoadingIndicator
 import com.magazines.catalog.presentation.components.MagazineCoverImage
+import com.magazines.catalog.presentation.theme.CreamBackground
+import com.magazines.catalog.presentation.theme.FieldBorder
+import com.magazines.catalog.presentation.theme.OrangePrimary
+import com.magazines.catalog.presentation.theme.TextPrimary
+import com.magazines.catalog.presentation.theme.TextSecondary
+
+private val ApproveGreen = Color(0xFF4CAF50)
+private val RejectRed = Color(0xFFE53935)
+private val RejectBackground = Color(0xFFFFF0F0)
+private val BadgeBackground = Color(0xFFFFF3E8)
+private val CoverShape = RoundedCornerShape(10.dp)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,31 +92,17 @@ fun AdminPanelScreen(
     }
 
     Scaffold(
+        containerColor = CreamBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Панель администратора") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Назад",
-                        )
-                    }
-                },
-            )
-        },
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
         ) {
-            Text(
-                text = "На модерации: ${uiState.pendingMagazines.size} ${pluralMagazines(uiState.pendingMagazines.size)}",
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+            AdminTopBar(
+                pendingCount = uiState.pendingMagazines.size,
+                onNavigateBack = onNavigateBack,
             )
 
             when {
@@ -113,12 +117,7 @@ fun AdminPanelScreen(
                     )
                 }
                 uiState.pendingMagazines.isEmpty() -> {
-                    EmptyState(
-                        icon = Icons.Default.FactCheck,
-                        title = "Журналов на модерации нет",
-                        subtitle = "Все запросы обработаны",
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                    EmptyQueue(modifier = Modifier.fillMaxSize())
                 }
                 else -> {
                     LazyColumn(
@@ -145,7 +144,6 @@ fun AdminPanelScreen(
 
     rejectTarget?.let { target ->
         RejectDialog(
-            magazine = target,
             onDismiss = { rejectTarget = null },
             onConfirm = { reason ->
                 viewModel.reject(target.id, reason)
@@ -156,57 +154,113 @@ fun AdminPanelScreen(
 }
 
 @Composable
+private fun AdminTopBar(
+    pendingCount: Int,
+    onNavigateBack: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onNavigateBack) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Назад",
+                tint = TextPrimary,
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "МОДЕРАЦИЯ",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = OrangePrimary,
+                letterSpacing = 2.sp,
+            )
+            Text(
+                text = "Панель админа",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary,
+            )
+        }
+        Box(
+            modifier = Modifier
+                .padding(end = 8.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(BadgeBackground)
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+        ) {
+            Text(
+                text = "$pendingCount В ОЧЕРЕДИ",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = OrangePrimary,
+                letterSpacing = 0.5.sp,
+            )
+        }
+    }
+}
+
+@Composable
 private fun PendingMagazineCard(
     magazine: Magazine,
     isProcessing: Boolean,
     onApprove: () -> Unit,
     onReject: () -> Unit,
 ) {
-    Surface(
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp,
-        shadowElevation = 2.dp,
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Row(verticalAlignment = Alignment.Top) {
-                MagazineCoverImage(
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CoverWithCategory(
                     coverUrl = magazine.coverUrl,
-                    contentDescription = magazine.title,
-                    modifier = Modifier
-                        .size(width = 72.dp, height = 96.dp)
-                        .clip(RoundedCornerShape(8.dp)),
+                    title = magazine.title,
+                    category = magazine.categoryName,
                 )
+
                 Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.fillMaxWidth()) {
+
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = magazine.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = TextPrimary,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = magazine.publisher,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = "${magazine.publisher} · ${magazine.categoryName}",
+                        fontSize = 12.sp,
+                        color = TextSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Загрузил: ${magazine.uploadedBy}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = subtitleLine(magazine),
+                        fontSize = 11.sp,
+                        color = TextSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                WaitingBadge()
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
+            HorizontalDivider(color = FieldBorder)
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -215,23 +269,60 @@ private fun PendingMagazineCard(
                 Button(
                     onClick = onApprove,
                     enabled = !isProcessing,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(38.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = ApproveGreen,
                         contentColor = Color.White,
+                        disabledContainerColor = ApproveGreen.copy(alpha = 0.4f),
+                        disabledContentColor = Color.White,
                     ),
+                    contentPadding = PaddingValues(horizontal = 12.dp),
                 ) {
-                    Text("Одобрить")
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Одобрить",
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 }
+
                 OutlinedButton(
                     onClick = onReject,
                     enabled = !isProcessing,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(38.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.5.dp, RejectRed),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
+                        containerColor = RejectBackground,
+                        contentColor = RejectRed,
                     ),
+                    contentPadding = PaddingValues(horizontal = 12.dp),
                 ) {
-                    Text("Отклонить")
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = null,
+                        tint = RejectRed,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Отклонить",
+                        color = RejectRed,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 }
             }
 
@@ -241,7 +332,11 @@ private fun PendingMagazineCard(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = OrangePrimary,
+                        strokeWidth = 2.dp,
+                    )
                 }
             }
         }
@@ -249,54 +344,205 @@ private fun PendingMagazineCard(
 }
 
 @Composable
+private fun CoverWithCategory(
+    coverUrl: String?,
+    title: String,
+    category: String,
+) {
+    Box(
+        modifier = Modifier
+            .size(64.dp)
+            .clip(CoverShape),
+    ) {
+        MagazineCoverImage(
+            coverUrl = coverUrl,
+            contentDescription = title,
+            modifier = Modifier.fillMaxSize(),
+            shape = CoverShape,
+        )
+        if (category.isNotBlank()) {
+            Box(
+                modifier = Modifier
+                    .padding(4.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+            ) {
+                Text(
+                    text = category.uppercase(),
+                    fontSize = 8.sp,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WaitingBadge() {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(BadgeBackground)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(OrangePrimary),
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = "ЖДЁТ",
+                fontSize = 10.sp,
+                color = OrangePrimary,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun RejectDialog(
-    magazine: Magazine,
     onDismiss: () -> Unit,
     onConfirm: (String?) -> Unit,
 ) {
     var reason by remember { mutableStateOf("") }
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Отклонить журнал") },
+        shape = RoundedCornerShape(16.dp),
+        containerColor = Color.White,
+        title = {
+            Text(
+                text = "Причина отклонения",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                color = TextPrimary,
+            )
+        },
         text = {
             Column {
                 Text(
-                    text = "«${magazine.title}»",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    text = "Укажите причину для автора журнала",
+                    fontSize = 14.sp,
+                    color = TextSecondary,
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth(),
                     value = reason,
                     onValueChange = { reason = it },
-                    label = { Text("Причина (необязательно)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
                     minLines = 3,
                     maxLines = 5,
+                    placeholder = {
+                        Text(
+                            text = "Опишите причину...",
+                            color = TextSecondary,
+                        )
+                    },
+                    textStyle = TextStyle(color = TextPrimary, fontSize = 14.sp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = OrangePrimary,
+                        unfocusedBorderColor = FieldBorder,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White,
+                        cursorColor = OrangePrimary,
+                    ),
                 )
             }
         },
         confirmButton = {
-            TextButton(
-                onClick = { onConfirm(reason.trim().takeIf { it.isNotEmpty() }) },
+            Button(
+                onClick = {
+                    onConfirm(reason.trim().takeIf { it.isNotEmpty() })
+                },
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = RejectRed,
+                    contentColor = Color.White,
+                ),
             ) {
-                Text("Отклонить", color = MaterialTheme.colorScheme.error)
+                Text(
+                    text = "Отклонить",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                )
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Отмена") }
+            TextButton(onClick = onDismiss) {
+                Text(text = "Отмена", color = TextSecondary)
+            }
         },
     )
 }
 
-private val ApproveGreen = Color(0xFF2E7D32)
+@Composable
+private fun EmptyQueue(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.CheckCircle,
+            contentDescription = null,
+            tint = ApproveGreen.copy(alpha = 0.5f),
+            modifier = Modifier.size(64.dp),
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Всё проверено!",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = TextPrimary,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Нет журналов на модерации",
+            fontSize = 14.sp,
+            color = TextSecondary,
+        )
+    }
+}
 
-private fun pluralMagazines(count: Int): String {
+private fun subtitleLine(magazine: Magazine): String {
+    val date = formatShortDate(magazine.createdAt)
+    val issues = "${magazine.issuesCount} ${pluralIssues(magazine.issuesCount)}"
+    return if (date != null) "Отправлен $date · $issues" else issues
+}
+
+private fun formatShortDate(iso: String?): String? {
+    if (iso.isNullOrBlank()) return null
+    val datePart = iso.substringBefore('T').split('-')
+    if (datePart.size != 3) return null
+    val year = datePart[0].toIntOrNull() ?: return null
+    val month = datePart[1].toIntOrNull() ?: return null
+    val day = datePart[2].toIntOrNull() ?: return null
+    if (month !in 1..12 || day !in 1..31 || year < 1900) return null
+    val months = listOf(
+        "янв", "фев", "мар", "апр", "мая", "июн",
+        "июл", "авг", "сен", "окт", "ноя", "дек",
+    )
+    return "$day ${months[month - 1]}"
+}
+
+private fun pluralIssues(count: Int): String {
     val mod10 = count % 10
     val mod100 = count % 100
     return when {
-        mod10 == 1 && mod100 != 11 -> "журнал"
-        mod10 in 2..4 && mod100 !in 12..14 -> "журнала"
-        else -> "журналов"
+        mod10 == 1 && mod100 != 11 -> "выпуск"
+        mod10 in 2..4 && mod100 !in 12..14 -> "выпуска"
+        else -> "выпусков"
     }
 }

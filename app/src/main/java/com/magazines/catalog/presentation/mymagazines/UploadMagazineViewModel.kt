@@ -2,6 +2,7 @@ package com.magazines.catalog.presentation.mymagazines
 
 import android.content.Context
 import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.magazines.catalog.data.remote.ApiResult
@@ -9,7 +10,10 @@ import com.magazines.catalog.data.remote.ignoreUnauthorized
 import com.magazines.catalog.data.remote.UriFileReader
 import com.magazines.catalog.domain.model.Category
 import com.magazines.catalog.domain.model.CreateMagazineRequest
+import com.magazines.catalog.domain.model.FileData
+import com.magazines.catalog.domain.model.UploadIssueRequest
 import com.magazines.catalog.domain.usecase.category.GetCategoriesUseCase
+import com.magazines.catalog.domain.usecase.issue.UploadIssueUseCase
 import com.magazines.catalog.domain.usecase.magazine.UploadCoverUseCase
 import com.magazines.catalog.domain.usecase.magazine.UploadMagazineUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,6 +32,10 @@ data class UploadMagazineUiState(
     val isSubmitting: Boolean = false,
     val isSuccess: Boolean = false,
     val error: String? = null,
+    val selectedPdfUri: Uri? = null,
+    val selectedPdfName: String? = null,
+    val pdfSizeMb: String? = null,
+    val isIssueSubmitting: Boolean = false,
 )
 
 @HiltViewModel
@@ -36,10 +44,17 @@ class UploadMagazineViewModel @Inject constructor(
     private val getCategoriesUseCase: GetCategoriesUseCase,
     private val uploadMagazineUseCase: UploadMagazineUseCase,
     private val uploadCoverUseCase: UploadCoverUseCase,
+    private val uploadIssueUseCase: UploadIssueUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UploadMagazineUiState())
     val uiState: StateFlow<UploadMagazineUiState> = _uiState.asStateFlow()
+
+    private val _currentStep = MutableStateFlow(1)
+    val currentStep: StateFlow<Int> = _currentStep.asStateFlow()
+
+    private val _createdMagazineId = MutableStateFlow<String?>(null)
+    val createdMagazineId: StateFlow<String?> = _createdMagazineId.asStateFlow()
 
     init {
         loadCategories()
@@ -51,6 +66,100 @@ class UploadMagazineViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    fun onMagazineCreated(magazineId: String) {
+        _createdMagazineId.value = magazineId
+        _currentStep.value = 2
+    }
+
+    fun onSkipIssue() {
+        _uiState.update { it.copy(isSuccess = true) }
+    }
+
+    fun pickPdf(uri: Uri) {
+        val resolver = context.contentResolver
+        val name = runCatching {
+            resolver.query(uri, null, null, null, null)?.use { cursor ->
+                val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (cursor.moveToFirst() && idx >= 0) cursor.getString(idx) else null
+            }
+        }.getOrNull() ?: "issue.pdf"
+
+        val sizeMb = runCatching {
+            resolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getLong(0) else null
+            }
+        }.getOrNull()?.let { "%.1f".format(it / 1_048_576.0) }
+
+        _uiState.update {
+            it.copy(
+                selectedPdfUri = uri,
+                selectedPdfName = name,
+                pdfSizeMb = sizeMb,
+                error = null,
+            )
+        }
+    }
+
+    fun clearPdf() {
+        _uiState.update {
+            it.copy(selectedPdfUri = null, selectedPdfName = null, pdfSizeMb = null)
+        }
+    }
+
+    fun submitIssue(issueNumber: Int, publicationDate: String?) {
+        val pdfUri = _uiState.value.selectedPdfUri
+        if (pdfUri == null) {
+            _uiState.update { it.copy(error = "Выберите PDF-файл") }
+            return
+        }
+        val magazineId = _createdMagazineId.value
+        if (magazineId.isNullOrBlank()) {
+            _uiState.update { it.copy(error = "Журнал ещё не создан") }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isIssueSubmitting = true, error = null, isSuccess = false)
+            }
+
+            val pdfFile = try {
+                val bytes = context.contentResolver.openInputStream(pdfUri)!!.use { it.readBytes() }
+                val mimeType = context.contentResolver.getType(pdfUri) ?: "application/pdf"
+                val fileName = _uiState.value.selectedPdfName ?: "issue.pdf"
+                FileData(bytes = bytes, mimeType = mimeType, fileName = fileName)
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(isIssueSubmitting = false, error = "Не удалось прочитать PDF-файл")
+                }
+                return@launch
+            }
+
+            val request = UploadIssueRequest(
+                magazineId = magazineId,
+                issueNumber = issueNumber,
+                publicationDate = publicationDate?.trim()?.takeIf { it.isNotEmpty() },
+            )
+
+            when (val result = uploadIssueUseCase(request, pdfFile)) {
+                is ApiResult.Success -> {
+                    _uiState.update { it.copy(isIssueSubmitting = false, isSuccess = true) }
+                }
+                is ApiResult.Error -> {
+                    _uiState.update {
+                        it.copy(isIssueSubmitting = false, error = result.message)
+                    }
+                }
+                ApiResult.Unauthorized -> Unit
+                ApiResult.NetworkError -> {
+                    _uiState.update {
+                        it.copy(isIssueSubmitting = false, error = NETWORK_ERROR)
+                    }
+                }
+            }
+        }
     }
 
     fun submit(
@@ -81,7 +190,8 @@ class UploadMagazineViewModel @Inject constructor(
                     val magazineId = createResult.data.id
                     val imageUri = _uiState.value.selectedImageUri
                     if (imageUri == null) {
-                        _uiState.update { it.copy(isSubmitting = false, isSuccess = true) }
+                        _uiState.update { it.copy(isSubmitting = false) }
+                        onMagazineCreated(magazineId)
                         return@launch
                     }
 
@@ -103,7 +213,8 @@ class UploadMagazineViewModel @Inject constructor(
 
                     when (val coverResult = uploadCoverUseCase(magazineId, coverFile)) {
                         is ApiResult.Success -> {
-                            _uiState.update { it.copy(isSubmitting = false, isSuccess = true) }
+                            _uiState.update { it.copy(isSubmitting = false) }
+                            onMagazineCreated(magazineId)
                         }
                         is ApiResult.Error -> {
                             _uiState.update {

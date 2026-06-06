@@ -146,6 +146,9 @@ private fun MainGraph(
                     onMagazineClick = { magazineId ->
                         mainNavController.navigate(Routes.magazineDetail(magazineId))
                     },
+                    onAddMagazine = {
+                        mainNavController.navigate(Routes.UPLOAD_MAGAZINE)
+                    },
                 )
             }
 
@@ -227,7 +230,9 @@ private fun MainGraph(
             ) {
                 MagazineDetailScreen(
                     onNavigateBack = { mainNavController.popBackStack() },
-                    onUploadIssue = { id -> mainNavController.navigate(Routes.uploadIssue(id)) },
+                    onUploadIssue = { id, title ->
+                        mainNavController.navigate(Routes.uploadIssue(id, title))
+                    },
                     onIssueClick = { pdfUrl, title ->
                         mainNavController.navigate(Routes.pdfViewer(pdfUrl, title))
                     },
@@ -267,11 +272,17 @@ private fun MainGraph(
                 route = Routes.UPLOAD_ISSUE,
                 arguments = listOf(
                     navArgument("magazineId") { type = NavType.StringType },
+                    navArgument("title") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
                 ),
-            ) {
+            ) { backStackEntry ->
                 UploadIssueScreen(
                     onNavigateBack = { mainNavController.popBackStack() },
                     onUploadSuccess = { mainNavController.popBackStack() },
+                    magazineTitle = backStackEntry.arguments?.getString("title"),
                 )
             }
 

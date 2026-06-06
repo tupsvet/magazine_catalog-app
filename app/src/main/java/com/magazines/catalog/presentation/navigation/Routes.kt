@@ -16,13 +16,17 @@ object Routes {
     const val FAVORITES = "favorites"
     const val MY_MAGAZINES = "my_magazines"
     const val UPLOAD_MAGAZINE = "upload_magazine"
-    const val UPLOAD_ISSUE = "upload_issue/{magazineId}"
+    const val UPLOAD_ISSUE = "upload_issue/{magazineId}?title={title}"
     const val PROFILE = "profile"
     const val ADMIN = "admin"
 
     fun magazineDetail(magazineId: String): String = "magazine/$magazineId"
 
-    fun uploadIssue(magazineId: String): String = "upload_issue/$magazineId"
+    fun uploadIssue(magazineId: String, magazineTitle: String? = null): String {
+        val base = "upload_issue/$magazineId"
+        return if (magazineTitle.isNullOrBlank()) base
+        else "$base?title=${Uri.encode(magazineTitle)}"
+    }
 
     fun pdfViewer(pdfUrl: String, title: String): String =
         "pdf_viewer?url=${Uri.encode(pdfUrl)}&title=${Uri.encode(title)}"

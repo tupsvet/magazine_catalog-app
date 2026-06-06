@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -20,19 +21,20 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.magazines.catalog.R
 
-private val CoverTopShape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+private val DefaultCoverShape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
 
 @Composable
 fun MagazineCoverImage(
     coverUrl: String?,
     contentDescription: String?,
     modifier: Modifier = Modifier,
+    shape: Shape = DefaultCoverShape,
 ) {
     val placeholder = painterResource(R.drawable.placeholder_cover)
 
     val imageModifier = modifier
-        .clip(CoverTopShape)
-        .background(MaterialTheme.colorScheme.surfaceVariant, CoverTopShape)
+        .clip(shape)
+        .background(MaterialTheme.colorScheme.surfaceVariant, shape)
 
     if (!coverUrl.isNullOrBlank()) {
         AsyncImage(
